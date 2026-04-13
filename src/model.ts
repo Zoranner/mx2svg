@@ -2,7 +2,7 @@
  * 中间表示（IR）：与 draw.io 内部 mxGraphModel 解耦，便于分阶段扩展渲染。
  */
 
-export type NodeShape = "rect" | "ellipse";
+export type NodeShape = "rect" | "ellipse" | "rhombus" | "hexagon" | "parallelogram" | "cylinder";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

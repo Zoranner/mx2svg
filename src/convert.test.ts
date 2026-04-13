@@ -32,6 +32,48 @@ describe("convert", () => {
     expect(svg).toContain("<ellipse");
   });
 
+  test("shape rhombus renders closed path in bbox", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toMatch(/d="M 160 80 L 220 110 L 160 140 L 100 110 Z"/);
+  });
+
+  test("shape diamond is alias of rhombus", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=diamond;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toMatch(/d="M 160 80 L 220 110 L 160 140 L 100 110 Z"/);
+  });
+
+  test("shape hexagon and parallelogram render path", () => {
+    const hex = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=hexagon;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    expect(convert(hex)).toContain('d="M 130 80 L 190 80 L 220 110 L 190 140 L 130 140 L 100 110 Z"');
+    const para = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=parallelogram;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    expect(convert(para)).toContain('d="M 130 80 L 220 80 L 190 140 L 100 140 Z"');
+  });
+
+  test("shape cylinder3 renders path with elliptic arc", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=cylinder3;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toMatch(/ A60 [\d.]+ 0 0 0 100 /);
+  });
+
   test("renders edge between source and target (center line)", () => {
     const svg = convert(minimalMxfile);
     expect(svg).toContain("<polyline");

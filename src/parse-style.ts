@@ -1,3 +1,5 @@
+import type { NodeShape } from "./model.ts";
+
 /** `a=b;c=d` → Map；忽略空段。 */
 export function parseMxStyle(styleAttr: string | undefined): Map<string, string> {
   const m = new Map<string, string>();
@@ -19,14 +21,35 @@ export function parseMxStyle(styleAttr: string | undefined): Map<string, string>
   return m;
 }
 
-export function inferShape(style: Map<string, string>): "rect" | "ellipse" {
+export function inferShape(style: Map<string, string>): NodeShape {
   const s = style.get("shape")?.toLowerCase();
-  if (s === "ellipse" || s === "circle") {
-    return "ellipse";
-  }
-  /** draw.io 常写 `ellipse;fillColor=...`（无 shape=） */
+
   if (style.has("ellipse")) {
     return "ellipse";
   }
+  if (s === "ellipse" || s === "circle") {
+    return "ellipse";
+  }
+
+  if (s === "rhombus" || s === "diamond" || style.has("rhombus") || style.has("diamond")) {
+    return "rhombus";
+  }
+  if (s === "hexagon" || style.has("hexagon")) {
+    return "hexagon";
+  }
+  if (s === "parallelogram" || style.has("parallelogram")) {
+    return "parallelogram";
+  }
+  if (
+    s === "cylinder" ||
+    s === "cylinder2" ||
+    s === "cylinder3" ||
+    style.has("cylinder") ||
+    style.has("cylinder2") ||
+    style.has("cylinder3")
+  ) {
+    return "cylinder";
+  }
+
   return "rect";
 }

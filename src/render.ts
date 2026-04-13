@@ -1,4 +1,5 @@
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
+import { shapePathD } from "./shape-path.ts";
 
 export interface RenderOptions {
   /** 渲染第几页（0-based），默认 0 */
@@ -186,7 +187,12 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   const dashAttr = strokeDashAttr(n.style);
   const parts: string[] = [];
 
-  if (n.shape === "ellipse") {
+  const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height);
+  if (pathD) {
+    parts.push(
+      `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}" stroke-linejoin="round"${dashAttr}/>`,
+    );
+  } else if (n.shape === "ellipse") {
     const cx = n.x + n.width / 2;
     const cy = n.y + n.height / 2;
     const rx = n.width / 2;
