@@ -14,6 +14,9 @@ const minimalMxfile = `<?xml version="1.0"?>
         <mxCell id="3" value="Circle" style="ellipse;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="300" y="80" width="80" height="80" as="geometry"/>
         </mxCell>
+        <mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
@@ -27,5 +30,29 @@ describe("convert", () => {
     expect(svg).toContain("Circle");
     expect(svg).toContain("<rect");
     expect(svg).toContain("<ellipse");
+  });
+
+  test("renders edge between source and target (center line)", () => {
+    const svg = convert(minimalMxfile);
+    expect(svg).toContain("<polyline");
+    expect(svg).toContain('data-mx2svg-edge="4"');
+    expect(svg).toContain("marker-end");
+  });
+
+  test("renders edge from explicit mxPoint path", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="e1" edge="1" parent="1" style="strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="10" y="20" as="sourcePoint"/>
+      <mxPoint x="100" y="80" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    expect(svg).toContain("<polyline");
+    expect(svg).toContain("10,20");
+    expect(svg).toContain("100,80");
   });
 });

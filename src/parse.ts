@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { decompressDiagramInner } from "./decompress.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
-import type { DiagramDoc, DiagramNode, DiagramPage } from "./model.ts";
+import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -51,12 +51,64 @@ function diagramCompressedOrRawText(diagramEl: Record<string, unknown>): string 
   return null;
 }
 
-function parseGraphModelObject(modelObj: Record<string, unknown>): DiagramPage["nodes"] {
+function parseMxPoint(obj: Record<string, unknown>): { x: number; y: number } | null {
+  const x = numAttr(obj, "x", NaN);
+  const y = numAttr(obj, "y", NaN);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y };
+}
+
+/** 从边的 mxGeometry 提取折线点（sourcePoint → Array points → targetPoint）。 */
+function edgePointsFromGeometry(geo: Record<string, unknown> | undefined): { x: number; y: number }[] | null {
+  if (!geo) return null;
+
+  const allMxPoints = asArray<Record<string, unknown>>(geo.mxPoint as Record<string, unknown> | Record<string, unknown>[]);
+  let source: { x: number; y: number } | undefined;
+  let target: { x: number; y: number } | undefined;
+  const loose: { x: number; y: number }[] = [];
+
+  for (const o of allMxPoints) {
+    const p = parseMxPoint(o);
+    if (!p) continue;
+    const as = strAttr(o, "as");
+    if (as === "sourcePoint") source = p;
+    else if (as === "targetPoint") target = p;
+    else loose.push(p);
+  }
+
+  const arrayPoints: { x: number; y: number }[] = [];
+  const arrRaw = geo.Array;
+  if (arrRaw && typeof arrRaw === "object" && !Array.isArray(arrRaw)) {
+    const inner = asArray<Record<string, unknown>>(
+      (arrRaw as Record<string, unknown>).mxPoint as Record<string, unknown> | Record<string, unknown>[],
+    );
+    for (const o of inner) {
+      const p = parseMxPoint(o);
+      if (p) arrayPoints.push(p);
+    }
+  }
+
+  const parts: { x: number; y: number }[] = [];
+  if (source) parts.push(source);
+  parts.push(...arrayPoints);
+  if (target) parts.push(target);
+
+  if (parts.length >= 2) return parts;
+  if (loose.length >= 2) return loose;
+  if (source && target) return [source, target];
+  return null;
+}
+
+function parseGraphModelObject(modelObj: Record<string, unknown>): {
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
+} {
   const root = modelObj.root as Record<string, unknown> | undefined;
-  if (!root) return [];
+  if (!root) return { nodes: [], edges: [] };
 
   const cells = asArray<Record<string, unknown>>(root.mxCell as Record<string, unknown> | Record<string, unknown>[]);
   const nodes: DiagramNode[] = [];
+  const edges: DiagramEdge[] = [];
 
   for (const cell of cells) {
     const id = strAttr(cell, "id");
@@ -91,7 +143,49 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): DiagramPage["
     });
   }
 
-  return nodes;
+  const nodeById = new Map(nodes.map((n) => [n.id, n] as const));
+
+  for (const cell of cells) {
+    const id = strAttr(cell, "id");
+    if (!id || id === "0" || id === "1") continue;
+    if (strAttr(cell, "edge") !== "1") continue;
+
+    const geoRaw = cell.mxGeometry;
+    const geoObj = (Array.isArray(geoRaw) ? geoRaw[0] : geoRaw) as Record<string, unknown> | undefined;
+    let pts = edgePointsFromGeometry(geoObj);
+
+    const source = strAttr(cell, "source");
+    const target = strAttr(cell, "target");
+    if ((!pts || pts.length < 2) && source && target) {
+      const a = nodeById.get(source);
+      const b = nodeById.get(target);
+      if (a && b) {
+        pts = [
+          { x: a.x + a.width / 2, y: a.y + a.height / 2 },
+          { x: b.x + b.width / 2, y: b.y + b.height / 2 },
+        ];
+      }
+    }
+
+    if (!pts || pts.length < 2) continue;
+
+    const styleStr = strAttr(cell, "style");
+    const style = parseMxStyle(styleStr);
+    const value = strAttr(cell, "value") ?? "";
+    const parent = strAttr(cell, "parent") ?? null;
+
+    edges.push({
+      id,
+      parentId: parent,
+      points: pts,
+      label: decodeMxValue(value),
+      style,
+      ...(source ? { source } : {}),
+      ...(target ? { target } : {}),
+    });
+  }
+
+  return { nodes, edges };
 }
 
 /** HTML 实体与常见转义（标签在标签外 value 中较少，先保守处理）。 */
@@ -109,11 +203,12 @@ function parseMxGraphModelFromDoc(modelObj: Record<string, unknown>): {
   pageWidth: number;
   pageHeight: number;
   nodes: DiagramNode[];
+  edges: DiagramEdge[];
 } {
   const pageWidth = numAttr(modelObj, "pageWidth", 850);
   const pageHeight = numAttr(modelObj, "pageHeight", 1100);
-  const nodes = parseGraphModelObject(modelObj);
-  return { pageWidth, pageHeight, nodes };
+  const { nodes, edges } = parseGraphModelObject(modelObj);
+  return { pageWidth, pageHeight, nodes, edges };
 }
 
 export function parseDrawioXml(xml: string): DiagramDoc {
@@ -126,7 +221,7 @@ export function parseDrawioXml(xml: string): DiagramDoc {
   if (!mxfile) {
     if (root.mxGraphModel) {
       const m = root.mxGraphModel as Record<string, unknown>;
-      const { pageWidth, pageHeight, nodes } = parseMxGraphModelFromDoc(m);
+      const { pageWidth, pageHeight, nodes, edges } = parseMxGraphModelFromDoc(m);
       return {
         pages: [
           {
@@ -135,6 +230,7 @@ export function parseDrawioXml(xml: string): DiagramDoc {
             pageWidth,
             pageHeight,
             nodes,
+            edges,
           },
         ],
       };
@@ -163,8 +259,8 @@ export function parseDrawioXml(xml: string): DiagramDoc {
 
     if (!modelObj) continue;
 
-    const { pageWidth, pageHeight, nodes } = parseMxGraphModelFromDoc(modelObj);
-    pages.push({ id, name, pageWidth, pageHeight, nodes });
+    const { pageWidth, pageHeight, nodes, edges } = parseMxGraphModelFromDoc(modelObj);
+    pages.push({ id, name, pageWidth, pageHeight, nodes, edges });
   }
 
   if (pages.length === 0) {
