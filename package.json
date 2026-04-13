@@ -1,0 +1,24 @@
+{
+  "name": "mx2svg",
+  "version": "0.1.0",
+  "description": "Draw.io / diagrams.net XML → SVG（全新架构；分阶段实现）",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.2.5",
+    "pako": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/pako": "^2.0.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
