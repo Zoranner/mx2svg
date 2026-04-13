@@ -55,4 +55,46 @@ describe("convert", () => {
     expect(svg).toContain("10,20");
     expect(svg).toContain("100,80");
   });
+
+  test("rect with rounded=0 has no corner radius", () => {
+    const svg = convert(minimalMxfile);
+    expect(svg).toContain('rx="0"');
+    expect(svg).toContain('ry="0"');
+  });
+
+  test("rect with rounded=1 uses proportional rx/ry", () => {
+    const xml = minimalMxfile.replace("rounded=0;", "rounded=1;");
+    const svg = convert(xml);
+    expect(svg).toMatch(/rx="12"/);
+    expect(svg).toMatch(/ry="12"/);
+  });
+
+  test("rect with rounded=N uses pixel radius (capped)", () => {
+    const xml = minimalMxfile.replace("rounded=0;", "rounded=8;");
+    const svg = convert(xml);
+    expect(svg).toMatch(/rx="8"/);
+  });
+
+  test("vertex dashed stroke uses stroke-dasharray", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;dashed=1;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('stroke-dasharray="6 4"');
+  });
+
+  test("fill gradient emits linearGradient and url fill", () => {
+    const xml = minimalMxfile.replace(
+      "fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "fillColor=#dae8fc;gradientColor=#ffffff;gradientDirection=east;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<linearGradient");
+    expect(svg).toContain('x1="0%"');
+    expect(svg).toContain('x2="100%"');
+    expect(svg).toContain("stop-color=\"#dae8fc\"");
+    expect(svg).toContain("stop-color=\"#ffffff\"");
+    expect(svg).toMatch(/fill="url\(#mx2svg-g-\d+\)"/);
+  });
 });

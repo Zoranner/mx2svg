@@ -17,6 +17,93 @@ function colorOr(style: Map<string, string>, key: string, fallback: string): str
   return v;
 }
 
+/** draw.io `gradientDirection` → SVG objectBoundingBox 线性渐变向量 */
+function gradientDirectionToPercents(dirRaw: string): { x1: string; y1: string; x2: string; y2: string } {
+  const d = (dirRaw || "south").toLowerCase().replace(/\s+/g, "");
+  switch (d) {
+    case "north":
+      return { x1: "0%", y1: "100%", x2: "0%", y2: "0%" };
+    case "south":
+      return { x1: "0%", y1: "0%", x2: "0%", y2: "100%" };
+    case "east":
+      return { x1: "0%", y1: "0%", x2: "100%", y2: "0%" };
+    case "west":
+      return { x1: "100%", y1: "0%", x2: "0%", y2: "0%" };
+    case "northeast":
+      return { x1: "0%", y1: "100%", x2: "100%", y2: "0%" };
+    case "northwest":
+      return { x1: "100%", y1: "100%", x2: "0%", y2: "0%" };
+    case "southeast":
+      return { x1: "0%", y1: "0%", x2: "100%", y2: "100%" };
+    case "southwest":
+      return { x1: "100%", y1: "0%", x2: "0%", y2: "100%" };
+    default:
+      return { x1: "0%", y1: "0%", x2: "0%", y2: "100%" };
+  }
+}
+
+function strokeDashAttr(style: Map<string, string>): string {
+  const d = style.get("dashed");
+  if (d === "1" || d === "true") return ' stroke-dasharray="6 4"';
+  if (style.has("dashed") && (d === undefined || d === "")) return ' stroke-dasharray="6 4"';
+  return "";
+}
+
+/** 矩形圆角：`rounded=1` 为比例圆角；`rounded=N` 为像素半径；`rounded=0` 关闭。 */
+function rectCornerRadius(style: Map<string, string>, w: number, h: number): number {
+  const r = style.get("rounded");
+  if (r === "0" || r === "false") return 0;
+
+  if (r && r !== "1" && r !== "true") {
+    const n = Number(r);
+    if (Number.isFinite(n)) {
+      if (n <= 0) return 0;
+      return Math.min(n, Math.min(w, h) / 2);
+    }
+  }
+
+  const useDefaultRound =
+    r === "1" || r === "true" || (style.has("rounded") && (r === undefined || r === ""));
+  if (!useDefaultRound) {
+    const arc = style.get("arcsize");
+    if (arc) {
+      const pct = Number(arc);
+      if (Number.isFinite(pct) && pct > 0) {
+        return Math.min((Math.min(w, h) * pct) / 100, Math.min(w, h) / 2);
+      }
+    }
+    return 0;
+  }
+
+  return Math.min(12, Math.min(w, h) / 4);
+}
+
+interface GradientBuildContext {
+  fragments: string[];
+  nextId: number;
+}
+
+function allocFill(
+  style: Map<string, string>,
+  baseFill: string,
+  g: GradientBuildContext,
+): string {
+  const g2 = colorOr(style, "gradientcolor", "");
+  if (!g2 || g2 === "none") {
+    return esc(baseFill);
+  }
+  const dir = style.get("gradientdirection") ?? "south";
+  const { x1, y1, x2, y2 } = gradientDirectionToPercents(dir);
+  const id = `mx2svg-g-${g.nextId++}`;
+  g.fragments.push(
+    `<linearGradient id="${id}" gradientUnits="objectBoundingBox" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+      <stop offset="0%" stop-color="${esc(baseFill)}"/>
+      <stop offset="100%" stop-color="${esc(g2)}"/>
+    </linearGradient>`,
+  );
+  return `url(#${id})`;
+}
+
 function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
   minX: number;
   minY: number;
@@ -60,8 +147,7 @@ function renderEdge(e: DiagramEdge): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const pts = e.points.map((p) => `${p.x},${p.y}`).join(" ");
-  const dashed = e.style.get("dashed") === "1" || (e.style.get("dashed") ?? "") === "true";
-  const dashAttr = dashed ? ` stroke-dasharray="6 4"` : "";
+  const dashAttr = strokeDashAttr(e.style);
   const arrow = wantsArrowEnd(e.style);
   const markerEnd = arrow ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
 
@@ -70,11 +156,13 @@ function renderEdge(e: DiagramEdge): string {
   )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerEnd}/></g>`;
 }
 
-function renderNode(n: DiagramNode): string {
-  const fill = colorOr(n.style, "fillcolor", "#dae8fc");
+function renderNode(n: DiagramNode, g: GradientBuildContext): string {
+  const fillSolid = colorOr(n.style, "fillcolor", "#dae8fc");
+  const fill = allocFill(n.style, fillSolid, g);
   const stroke = colorOr(n.style, "strokecolor", "#6c8ebf");
   const sw = Number(n.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(n.style.get("fontsize") ?? "12") || 12;
+  const dashAttr = strokeDashAttr(n.style);
   const parts: string[] = [];
 
   if (n.shape === "ellipse") {
@@ -83,11 +171,14 @@ function renderNode(n: DiagramNode): string {
     const rx = n.width / 2;
     const ry = n.height / 2;
     parts.push(
-      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${esc(fill)}" stroke="${esc(stroke)}" stroke-width="${sw}"/>`,
+      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}/>`,
     );
   } else {
+    const rx = rectCornerRadius(n.style, n.width, n.height);
     parts.push(
-      `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${esc(fill)}" stroke="${esc(stroke)}" stroke-width="${sw}" rx="0"/>`,
+      `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
+        stroke,
+      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}/>`,
     );
   }
 
@@ -102,11 +193,9 @@ function renderNode(n: DiagramNode): string {
   return `<g data-mx2svg-id="${esc(n.id)}">${parts.join("")}</g>`;
 }
 
-const ARROW_DEFS = `<defs>
-  <marker id="mx2svg-arrow-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-    <path d="M 0 0 L 10 5 L 0 10 z" fill="#333333"/>
-  </marker>
-</defs>`;
+const ARROW_DEFS = `<marker id="mx2svg-arrow-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+ <path d="M 0 0 L 10 5 L 0 10 z" fill="#333333"/>
+  </marker>`;
 
 export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): string {
   const pageIndex = options.pageIndex ?? 0;
@@ -124,13 +213,20 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
   const vbW = maxX - minX + pad * 2;
   const vbH = maxY - minY + pad * 2;
 
+  const gctx: GradientBuildContext = { fragments: [], nextId: 0 };
   const edgeLayer = page.edges.map((e) => renderEdge(e)).join("\n");
-  const nodeLayer = page.nodes.map((n) => renderNode(n)).join("\n");
+  const nodeLayer = page.nodes.map((n) => renderNode(n, gctx)).join("\n");
+
+  const gradientBlock =
+    gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
+  const defsInner = [ARROW_DEFS, gradientBlock].filter(Boolean).join("\n  ");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}">
   <rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="${esc(bg)}"/>
-  ${ARROW_DEFS}
+  <defs>
+  ${defsInner}
+  </defs>
   ${edgeLayer}
   ${nodeLayer}
 </svg>`;

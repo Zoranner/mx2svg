@@ -2,12 +2,13 @@
 
 将 **draw.io / diagrams.net**（`mxfile` / `mxGraphModel`）XML 转为 **SVG**。全新实现，与历史参考实现（如 drawio2svg）仅在建模概念上对齐，代码独立，**MIT** 许可。
 
-## 当前能力（阶段 1–2）
+## 当前能力（阶段 1–3）
 
 - 解析 `<mxfile>` 下单页或多页；支持 **diagram 内压缩 payload**（base64 + raw deflate，与 draw.io 一致）。
 - 解析 **顶点**（`vertex="1"`）与 **mxGeometry**（x, y, width, height）。
 - 样式：`fillColor` / `strokeColor` / `strokeWidth` / `fontSize`；形状：`rect` 与 **独立 token `ellipse`** 或 `shape=ellipse`。
 - **边**（阶段 2）：`edge="1"`，从 `mxGeometry` 的 `sourcePoint` / `Array` 中间点 / `targetPoint` 取折线；若无点但有 `source`+`target`，则连接两顶点中心。支持 `dashed`、`endArrow`（非 `none`/`open` 时画三角箭头）。
+- **阶段 3**：矩形 **圆角**（`rounded=1` 比例圆角、`rounded=N` 像素半径、`rounded=0` 关闭；可选 `arcSize`）；顶点与边的 **虚线描边**（`dashed`）；**线性渐变**（`gradientColor` + `gradientDirection`：`north`/`south`/`east`/`west` 及四角别名，`objectBoundingBox`）。
 - **仍不渲染**：曲线边、泳道、表格、UserObject 包装、HTML 富文本等（见路线图）。
 
 ## API
@@ -27,10 +28,9 @@ const svg = convert(xml, { pageIndex: 0, padding: 8, backgroundColor: "#fff" });
 
 ## 路线图（分步迭代）
 
-1. **阶段 3**：圆角矩形（`rounded`）、顶点虚线描边、渐变（与 draw.io 样式子集对齐）。
-2. **阶段 4**：简单 HTML 标签（或统一降级为纯文本策略）。
-3. **阶段 5**：可选接入 **Pretext** 等做更准的多行文本折行与测量（当前为单行居中占位）。
-4. **阶段 6**：常用 `shape=*`（菱形、圆柱等）用 SVG path 近似。
+1. **阶段 4**：简单 HTML 标签（或统一降级为纯文本策略）。
+2. **阶段 5**：可选接入 **Pretext** 等做更准的多行文本折行与测量（当前为单行居中占位）。
+3. **阶段 6**：常用 `shape=*`（菱形、圆柱等）用 SVG path 近似。
 
 ## 开发
 
