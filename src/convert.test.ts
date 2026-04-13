@@ -81,6 +81,18 @@ describe("convert", () => {
     expect(svg).toContain("marker-end");
   });
 
+  test("renders edge label at midpoint of polyline with contrast stroke", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;">',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("relates");
+    expect(svg).toContain('x="250"');
+    expect(svg).toContain('y="115"');
+    expect(svg).toContain('paint-order="stroke fill"');
+  });
+
   test("renders edge from explicit mxPoint path", () => {
     const xml = `<?xml version="1.0"?>
 <mxfile><diagram id="p1" name="P"><mxGraphModel><root>

@@ -139,16 +139,61 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
   return { minX, minY, maxX, maxY };
 }
 
+/** 折线总长上 `fraction`（0–1）处的点；退化段长度按 0 处理。 */
+function polylinePointAtLengthFraction(
+  points: { x: number; y: number }[],
+  fraction: number,
+): { x: number; y: number } {
+  if (points.length === 0) return { x: 0, y: 0 };
+  if (points.length === 1) return points[0];
+  const segs: number[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const dx = points[i + 1].x - points[i].x;
+    const dy = points[i + 1].y - points[i].y;
+    segs.push(Math.hypot(dx, dy));
+  }
+  const total = segs.reduce((a, b) => a + b, 0);
+  if (total <= 0) return points[0];
+  let dist = Math.max(0, Math.min(1, fraction)) * total;
+  for (let i = 0; i < segs.length; i++) {
+    const sl = segs[i];
+    if (dist <= sl) {
+      const t = sl <= 0 ? 0 : dist / sl;
+      return {
+        x: points[i].x + t * (points[i + 1].x - points[i].x),
+        y: points[i].y + t * (points[i + 1].y - points[i].y),
+      };
+    }
+    dist -= sl;
+  }
+  return points[points.length - 1];
+}
+
+interface LabelBlockOpts {
+  /** 浅色描边，叠在折线等深色背景上时提高可读性 */
+  contrastStroke?: boolean;
+}
+
 /** 形状内居中标签：单行用 dominant-baseline；多行用绝对 y 的 tspan 垂直居中。 */
-function renderSvgLabelBlock(cx: number, cy: number, fs: number, label: string): string {
+function renderSvgLabelBlock(
+  cx: number,
+  cy: number,
+  fs: number,
+  label: string,
+  opts?: LabelBlockOpts,
+): string {
   const lines = label.split(/\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return "";
 
   const lh = fs * 1.2;
   const escLine = (s: string) => esc(s.trim());
+  const halo =
+    opts?.contrastStroke === true
+      ? ' paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"'
+      : "";
 
   if (lines.length === 1) {
-    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000">${escLine(
+    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000"${halo}>${escLine(
       lines[0],
     )}</text>`;
   }
@@ -157,7 +202,7 @@ function renderSvgLabelBlock(cx: number, cy: number, fs: number, label: string):
   const tspans = lines
     .map((line, i) => `<tspan x="${cx}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
     .join("");
-  return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000">${tspans}</text>`;
+  return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000"${halo}>${tspans}</text>`;
 }
 
 function wantsArrowEnd(style: Map<string, string>): boolean {
@@ -168,14 +213,24 @@ function wantsArrowEnd(style: Map<string, string>): boolean {
 function renderEdge(e: DiagramEdge): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
+  const fs = Number(e.style.get("fontsize") ?? "11") || 11;
   const pts = e.points.map((p) => `${p.x},${p.y}`).join(" ");
   const dashAttr = strokeDashAttr(e.style);
   const arrow = wantsArrowEnd(e.style);
   const markerEnd = arrow ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
 
-  return `<g data-mx2svg-edge="${esc(e.id)}"><polyline points="${pts}" fill="none" stroke="${esc(
-    stroke,
-  )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerEnd}/></g>`;
+  const parts: string[] = [
+    `<polyline points="${pts}" fill="none" stroke="${esc(
+      stroke,
+    )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerEnd}/>`,
+  ];
+
+  if (e.label.trim()) {
+    const { x: lx, y: ly } = polylinePointAtLengthFraction(e.points, 0.5);
+    parts.push(renderSvgLabelBlock(lx, ly, fs, e.label, { contrastStroke: true }));
+  }
+
+  return `<g data-mx2svg-edge="${esc(e.id)}">${parts.join("")}</g>`;
 }
 
 function renderNode(n: DiagramNode, g: GradientBuildContext): string {
