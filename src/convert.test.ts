@@ -84,6 +84,16 @@ describe("convert", () => {
     expect(svg).toContain('stroke-dasharray="6 4"');
   });
 
+  test("vertex value with HTML shows plain text in SVG", () => {
+    const xml = minimalMxfile.replace(
+      'value="Hello"',
+      'value="&lt;p style=&quot;margin:0&quot;&gt;Hi&lt;/p&gt;"',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("Hi");
+    expect(svg).not.toMatch(/<p(\s|>)/);
+  });
+
   test("fill gradient emits linearGradient and url fill", () => {
     const xml = minimalMxfile.replace(
       "fillColor=#dae8fc;strokeColor=#6c8ebf;",

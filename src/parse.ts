@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { decompressDiagramInner } from "./decompress.ts";
+import { mxLabelToPlainText } from "./mx-label-plain.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 
@@ -137,7 +138,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
       y: g.y,
       width: g.width,
       height: g.height,
-      label: decodeMxValue(value),
+      label: mxLabelToPlainText(value),
       shape: inferShape(style),
       style,
     });
@@ -178,7 +179,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
       id,
       parentId: parent,
       points: pts,
-      label: decodeMxValue(value),
+      label: mxLabelToPlainText(value),
       style,
       ...(source ? { source } : {}),
       ...(target ? { target } : {}),
@@ -186,17 +187,6 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
   }
 
   return { nodes, edges };
-}
-
-/** HTML 实体与常见转义（标签在标签外 value 中较少，先保守处理）。 */
-function decodeMxValue(s: string): string {
-  return s
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#xa;/g, "\n")
-    .replace(/<br\s*\/?>/gi, "\n");
 }
 
 function parseMxGraphModelFromDoc(modelObj: Record<string, unknown>): {
