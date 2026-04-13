@@ -138,6 +138,27 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
   return { minX, minY, maxX, maxY };
 }
 
+/** 形状内居中标签：单行用 dominant-baseline；多行用绝对 y 的 tspan 垂直居中。 */
+function renderSvgLabelBlock(cx: number, cy: number, fs: number, label: string): string {
+  const lines = label.split(/\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return "";
+
+  const lh = fs * 1.2;
+  const escLine = (s: string) => esc(s.trim());
+
+  if (lines.length === 1) {
+    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000">${escLine(
+      lines[0],
+    )}</text>`;
+  }
+
+  const yFirst = cy - ((lines.length - 1) * lh) / 2;
+  const tspans = lines
+    .map((line, i) => `<tspan x="${cx}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
+    .join("");
+  return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000">${tspans}</text>`;
+}
+
 function wantsArrowEnd(style: Map<string, string>): boolean {
   const v = (style.get("endarrow") ?? "classic").toLowerCase();
   return v !== "none" && v !== "open" && v !== "oval" && v !== "diamond";
@@ -185,9 +206,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   if (n.label.trim()) {
     const tx = n.x + n.width / 2;
     const ty = n.y + n.height / 2;
-    parts.push(
-      `<text x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000">${esc(n.label)}</text>`,
-    );
+    parts.push(renderSvgLabelBlock(tx, ty, fs, n.label));
   }
 
   return `<g data-mx2svg-id="${esc(n.id)}">${parts.join("")}</g>`;

@@ -84,6 +84,17 @@ describe("convert", () => {
     expect(svg).toContain('stroke-dasharray="6 4"');
   });
 
+  test("vertex multiline value renders tspans with distinct y", () => {
+    const xml = minimalMxfile.replace(
+      'value="Hello"',
+      'value="Line1&lt;br/&gt;Line2"',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<tspan");
+    expect(svg).toContain("Line1");
+    expect(svg).toContain("Line2");
+  });
+
   test("vertex value with HTML shows plain text in SVG", () => {
     const xml = minimalMxfile.replace(
       'value="Hello"',

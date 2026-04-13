@@ -16,9 +16,14 @@ describe("mxLabelToPlainText", () => {
     expect(mxLabelToPlainText("&amp;lt;p&amp;gt;Inner&amp;lt;/p&amp;gt;")).toBe("Inner");
   });
 
-  test("line breaks and tags collapse to single-line spaces", () => {
-    expect(mxLabelToPlainText("A<br/>B")).toBe("A B");
-    expect(mxLabelToPlainText("A\n\nB")).toBe("A B");
+  test("line breaks from br and blank lines become newline-separated lines", () => {
+    expect(mxLabelToPlainText("A<br/>B")).toBe("A\nB");
+    expect(mxLabelToPlainText("A\n\nB")).toBe("A\nB");
+  });
+
+  test("multiple block elements become multiple lines", () => {
+    expect(mxLabelToPlainText("<p>One</p><p>Two</p>")).toBe("One\nTwo");
+    expect(mxLabelToPlainText("<div>a</div><div>b</div>")).toBe("a\nb");
   });
 
   test("removes HTML comments", () => {

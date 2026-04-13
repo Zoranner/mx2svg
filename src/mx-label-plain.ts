@@ -1,5 +1,5 @@
 /**
- * draw.io 顶点/边 `value` 常为 HTML 片段；SVG 暂用单行 `<text>`，统一降级为纯文本。
+ * draw.io 顶点/边 `value` 常为 HTML 片段；降级为纯文本，显式换行保留为 `\n`（供 SVG `<tspan>` 多行居中）。
  */
 
 function decodeMxEntitiesAndBreaks(s: string): string {
@@ -17,12 +17,20 @@ function decodeMxEntitiesAndBreaks(s: string): string {
     .replace(/<br\s*\/?>/gi, "\n");
 }
 
-/** 去掉 HTML/XML 注释与标签，折叠空白（含换行），供居中单行文本使用。 */
+/**
+ * 去掉标签与注释；`</p>`、`</div>`、`</tr>`、`<br>` 等产生换行；行内空白折叠；空行丢弃；多行以 `\n` 连接。
+ */
 export function mxLabelToPlainText(raw: string): string {
   if (!raw) return "";
   let t = decodeMxEntitiesAndBreaks(raw);
   t = t.replace(/<!--[\s\S]*?-->/g, "");
+  t = t.replace(/<\/p>/gi, "\n");
+  t = t.replace(/<\/div>/gi, "\n");
+  t = t.replace(/<\/tr>/gi, "\n");
   t = t.replace(/<[^>]+>/g, "");
-  t = t.replace(/\s+/g, " ").trim();
-  return t;
+  const lines = t
+    .split(/\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter((p) => p.length > 0);
+  return lines.join("\n");
 }
