@@ -71,7 +71,7 @@ describe("convert", () => {
     );
     const svg = convert(xml);
     expect(svg).toContain("<path ");
-    expect(svg).toMatch(/ A60 [\d.]+ 0 0 0 100 /);
+    expect(svg).toMatch(/ A 60 [\d.]+\s+0 0 0 100 /);
   });
 
   test("renders edge between source and target (center line)", () => {
