@@ -1,5 +1,5 @@
-import type { DiagramNode } from "./model.ts";
-import { worldConvexPolygonOutline } from "./shape-outline.ts";
+import type { DiagramNode } from "../core/model.ts";
+import { worldConvexPolygonOutline } from "../shape/shape-outline.ts";
 
 /**
  * `spacing` 样式：在「仅有源/目标中心点」的边上，将端点从中心改为沿指向对端的射线穿出本形状周界，再沿连线偏移 `spacing`（像素），

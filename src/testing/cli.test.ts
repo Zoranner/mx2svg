@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { minimalMxfile as sampleXml } from "./test-fixtures.ts";
 import { writeTestOutputSvg } from "./test-svg-dump.ts";
 
-const pkgRoot = join(import.meta.dir, "..");
+const pkgRoot = join(import.meta.dir, "..", "..");
 
 describe("cli", () => {
   test("--string prints SVG to stdout when no -o", () => {
     const r = Bun.spawnSync({
-      cmd: ["bun", "run", join(import.meta.dir, "cli.ts"), "-s", sampleXml],
+      cmd: ["bun", "run", join(import.meta.dir, "..", "cli.ts"), "-s", sampleXml],
       cwd: pkgRoot,
     });
     expect(r.success).toBe(true);
@@ -25,7 +25,7 @@ describe("cli", () => {
   test("--string -o writes file", () => {
     const out = join(pkgRoot, ".test-output", "cli", "string-o.svg");
     const r = Bun.spawnSync({
-      cmd: ["bun", "run", join(import.meta.dir, "cli.ts"), "-s", sampleXml, "-o", out],
+      cmd: ["bun", "run", join(import.meta.dir, "..", "cli.ts"), "-s", sampleXml, "-o", out],
       cwd: pkgRoot,
     });
     expect(r.success).toBe(true);
@@ -37,7 +37,7 @@ describe("cli", () => {
       cmd: [
         "bun",
         "run",
-        join(import.meta.dir, "cli.ts"),
+        join(import.meta.dir, "..", "cli.ts"),
         "-s",
         sampleXml,
         "--font-stack",

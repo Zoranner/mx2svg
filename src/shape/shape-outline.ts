@@ -1,4 +1,4 @@
-import type { DiagramNode, NodeShape } from "./model.ts";
+import type { DiagramNode, NodeShape } from "../core/model.ts";
 
 /**
  * 与 `shape-path.ts` 一致、相对 **单元格中心** 的凸多边形顶点（逆时针顺序），用于 `spacing` 等周界求交。

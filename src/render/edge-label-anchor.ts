@@ -1,8 +1,8 @@
-import type { DiagramEdge } from "../model.ts";
+import type { DiagramEdge } from "../core/model.ts";
 import {
   polylinePointAtLengthFraction,
   polylinePointWithPerpendicularOffset,
-} from "../polyline.ts";
+} from "../edge/polyline.ts";
 
 /** draw.io `labelPadding`：沿路径法向偏移（像素），与 `polylinePointWithPerpendicularOffset` 正方向一致。 */
 export function edgeLabelPaddingPx(style: Map<string, string>): number {

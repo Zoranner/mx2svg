@@ -2,7 +2,7 @@
  * 边箭头：`endArrow` / `startArrow` 常见取值 → SVG marker（颜色与边 `strokeColor` 一致）。
  */
 
-import type { DiagramEdge } from "./model.ts";
+import type { DiagramEdge } from "../core/model.ts";
 
 export type ArrowHeadKind = "none" | "filled" | "open" | "oval" | "diamond";
 

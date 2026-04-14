@@ -1,8 +1,8 @@
 /**
- * 将多种典型图转成 SVG落到 `.test-output/convert/`，与 `convert.test.ts` 的断言互补，便于浏览器目视。
+ * 将多种典型图转成 SVG落到 `.test-output/convert/`，与同目录 `convert.test.ts` 的断言互补，便于浏览器目视。
  */
 import { describe, expect, test } from "bun:test";
-import { convert } from "./convert.ts";
+import { convert } from "../convert.ts";
 import { minimalMxfile } from "./test-fixtures.ts";
 import { writeTestOutputSvg } from "./test-svg-dump.ts";
 

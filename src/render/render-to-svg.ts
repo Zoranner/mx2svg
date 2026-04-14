@@ -1,5 +1,5 @@
-import { buildArrowMarkerDefs } from "../edge-arrow.ts";
-import type { DiagramDoc } from "../model.ts";
+import type { DiagramDoc } from "../core/model.ts";
+import { buildArrowMarkerDefs } from "../edge/edge-arrow.ts";
 import { pageContentBounds } from "./bounds.ts";
 import { computeEdgeLineMetrics } from "./edge-line-metrics.ts";
 import type { RenderOptions } from "./options.ts";

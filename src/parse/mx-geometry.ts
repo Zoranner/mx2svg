@@ -1,4 +1,4 @@
-import type { DiagramEdge } from "../model.ts";
+import type { DiagramEdge } from "../core/model.ts";
 import { asArray, numAttr, strAttr } from "./xml-helpers.ts";
 
 export function parseGeometry(

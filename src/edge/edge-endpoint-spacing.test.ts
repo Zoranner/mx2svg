@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import type { DiagramNode } from "../core/model.ts";
 import { adjustCenterConnectorEndpoints } from "./edge-endpoint-spacing.ts";
-import type { DiagramNode } from "./model.ts";
 
 function node(
   partial: Partial<DiagramNode> & Pick<DiagramNode, "id" | "x" | "y" | "width" | "height">,

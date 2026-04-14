@@ -1,6 +1,11 @@
-import { markerEndAttr, markerStartAttr, parseEndArrow, parseStartArrow } from "../edge-arrow.ts";
-import type { DiagramEdge } from "../model.ts";
-import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../wrap-label.ts";
+import type { DiagramEdge } from "../core/model.ts";
+import {
+  markerEndAttr,
+  markerStartAttr,
+  parseEndArrow,
+  parseStartArrow,
+} from "../edge/edge-arrow.ts";
+import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../text/wrap-label.ts";
 import { edgeLabelAnchor } from "./edge-label-anchor.ts";
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { convert } from "./convert.ts";
+import { convert } from "../convert.ts";
 import { minimalMxfile } from "./test-fixtures.ts";
 
 describe("convert", () => {

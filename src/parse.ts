@@ -1,4 +1,4 @@
-import type { DiagramDoc, DiagramPage } from "./model.ts";
+import type { DiagramDoc, DiagramPage } from "./core/model.ts";
 import { diagramCompressedOrRawText } from "./parse/diagram-payload.ts";
 import { parseMxGraphModelFromDoc } from "./parse/graph-model.ts";
 import { asArray, strAttr } from "./parse/xml-helpers.ts";

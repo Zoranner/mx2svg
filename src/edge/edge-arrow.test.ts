@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import type { DiagramEdge } from "../core/model.ts";
 import {
   arrowMarkerId,
   buildArrowMarkerDefs,
   parseEndArrow,
   parseStartArrow,
 } from "./edge-arrow.ts";
-import type { DiagramEdge } from "./model.ts";
 
 describe("edge-arrow", () => {
   test("parseEndArrow defaults to filled", () => {

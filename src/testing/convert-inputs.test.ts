@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { deflate } from "pako";
-import { convert } from "./convert.ts";
-import { parseDrawioXml } from "./parse.ts";
+import { convert } from "../convert.ts";
+import { parseDrawioXml } from "../parse.ts";
 
-/** 与 `decompress.ts` 互逆：encodeURIComponent → raw deflate → base64（diagram `#text` 形态）。 */
+/** 与 `parse/decompress.ts` 互逆：encodeURIComponent → raw deflate → base64（diagram `#text` 形态）。 */
 function diagramPayloadFromInnerMxGraphModel(innerXml: string): string {
   const encoded = encodeURIComponent(innerXml);
   const bytes = new TextEncoder().encode(encoded);

@@ -22,7 +22,7 @@ bun run check           # 格式化 + 整理 import（写回，本地常用）
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
 - **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`、`font-stack-stdout.svg`）
-- **`convert/`**：**`convert-output.test.ts`** 写入的 **21+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**（含 **菱形端点**、**旋转椭圆端点**）、**`labelPadding`**、边标签比例、双开箭头等），便于逐项打开对照
+- **`convert/`**：**`testing/convert-output.test.ts`** 写入的 **21+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**（含 **菱形端点**、**旋转椭圆端点**）、**`labelPadding`**、边标签比例、双开箭头等），便于逐项打开对照
 
 ### 程序化集成（开发中直接使用）
 
@@ -40,9 +40,9 @@ const svg = convert(drawioXml, {
 // svg 为完整 SVG 文档字符串，可写文件、塞进 HTTP 响应、交给前端展示等
 ```
 
-需要改解析/渲染中间步骤时，可拆开使用 **`parseDrawioXml`**（XML → `DiagramDoc`）与 **`renderToSvg`**（`DiagramDoc` → SVG）。类型见 **`DiagramDoc`**、**`DiagramPage`** 等导出。
+需要改解析/渲染中间步骤时，可拆开使用 **`parseDrawioXml`**（XML → `DiagramDoc`）与 **`renderToSvg`**（`DiagramDoc` → SVG）。类型见 **`DiagramDoc`**、**`DiagramPage`** 等导出（定义在 **`core/model.ts`**，经 **`index`** 再导出）。
 
-**源码布局（`src/`）**：入口为 **`convert.ts`**、**`index.ts`**、**`cli.ts`**；**`parse.ts`** 只做顶层 XML / 多页调度；**`parse/`** 含 **`xml-parser`**、**`xml-helpers`**、**`mx-geometry`**（点列与边标签几何）、**`graph-model`**（cells → nodes/edges）、**`diagram-payload`**、**`style`**（`parseMxStyle` / `inferShape`）、**`edge-endpoints`**（中心连线 `spacing`）等；**`render.ts`** 仅再导出，实现见 **`render/`**；几何与绘制仍分布在 **`edge-*`**、**`shape-*`**、**`model.ts`** 等文件中。
+**源码布局（`src/`）**：入口为 **`convert.ts`**、**`index.ts`**、**`cli.ts`**；**`parse.ts`** 只做顶层 XML / 多页调度；**`parse/`** 含 **`xml-parser`**、**`xml-helpers`**、**`decompress`**（diagram 内压缩 payload）、**`mx-geometry`**（点列与边标签几何）、**`graph-model`**（cells → nodes/edges）、**`diagram-payload`**、**`style`**（`parseMxStyle` / `inferShape`）、**`edge-endpoints`**（中心连线 `spacing`）等；**`render.ts`** 仅再导出，实现见 **`render/`**；几何与绘制：**`edge/`**、**`shape/`**；**`text/`**（**`mx-font`**、**`wrap-label`** + **`pretext-shim`**、**`mx-label-plain`**）；以及 **`core/model.ts`**（IR）、根目录 **`convert.ts`**、**`testing/`**（集成/CLI 单测与 **`test-fixtures`**、**`test-svg-dump`**）等。
 
 在 monorepo 里可把依赖写成 `"mx2svg": "workspace:*"` 或 `"file:../mx2svg"`，再同样 `import { convert } from "mx2svg"`。
 
@@ -55,7 +55,7 @@ bun run render -- path/to/diagram.drawio
 bun run ./src/cli.ts path/to/diagram.drawio -o /path/to/out.svg
 ```
 
-- **XML 字符串**（适合脚本与小片段；**无 `-o` 时 SVG 打到标准输出**，便于重定向或管道）。开发与单测共用的最小示例见 **`src/test-fixtures.ts`**（`minimalMxfile`），可复制为文件或拼进 `-s`：
+- **XML 字符串**（适合脚本与小片段；**无 `-o` 时 SVG 打到标准输出**，便于重定向或管道）。开发与单测共用的最小示例见 **`src/testing/test-fixtures.ts`**（`minimalMxfile`），可复制为文件或拼进 `-s`：
 
 ```bash
 bun run ./src/cli.ts -s "<?xml version=\"1.0\"?><mxfile>...</mxfile>"
@@ -77,7 +77,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 | `fast-xml-parser` | 流式友好、无 DOM 的 XML 解析（Node / Bun） |
 | `pako` | 与 draw.io 一致的 diagram 内 **base64 + raw deflate** 解压 |
 | `@chenglou/pretext` | `whiteSpace=wrap` 时顶点与边标签的折行与宽度测量 |
-| `@napi-rs/canvas` | 为非浏览器环境提供 Canvas 2D（`OffscreenCanvas` 垫片，见 `src/pretext-shim.ts`） |
+| `@napi-rs/canvas` | 为非浏览器环境提供 Canvas 2D（`OffscreenCanvas` 垫片，见 `src/text/pretext-shim.ts`） |
 
 ## 功能说明
 

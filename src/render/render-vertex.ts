@@ -1,6 +1,6 @@
-import type { DiagramNode } from "../model.ts";
-import { shapePathD, vertexLabelCenter } from "../shape-path.ts";
-import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../wrap-label.ts";
+import type { DiagramNode } from "../core/model.ts";
+import { shapePathD, vertexLabelCenter } from "../shape/shape-path.ts";
+import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../text/wrap-label.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
 import type { GradientBuildContext } from "./svg-util.ts";
 import { allocFill, colorOr, esc, rectCornerRadius, strokeDashAttr } from "./svg-util.ts";

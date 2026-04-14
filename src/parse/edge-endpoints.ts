@@ -1,5 +1,5 @@
-import { adjustCenterConnectorEndpoints } from "../edge-endpoint-spacing.ts";
-import type { DiagramNode } from "../model.ts";
+import type { DiagramNode } from "../core/model.ts";
+import { adjustCenterConnectorEndpoints } from "../edge/edge-endpoint-spacing.ts";
 
 /**
  * 解析阶段：若边因缺少 geometry 点而回退为「源/目标中心」连线，且 style 含正数 `spacing`，

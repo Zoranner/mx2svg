@@ -1,4 +1,4 @@
-import type { NodeShape } from "./model.ts";
+import type { NodeShape } from "../core/model.ts";
 
 /** `document` 底部波浪占用高度（与 `shapePathD` 中 `size` 语义一致）。 */
 export function documentWaveDy(h: number, style: Map<string, string> | undefined): number {

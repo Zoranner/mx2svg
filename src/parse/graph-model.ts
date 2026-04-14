@@ -1,5 +1,5 @@
-import type { DiagramEdge, DiagramNode } from "../model.ts";
-import { mxLabelToPlainText } from "../mx-label-plain.ts";
+import type { DiagramEdge, DiagramNode } from "../core/model.ts";
+import { mxLabelToPlainText } from "../text/mx-label-plain.ts";
 import { maybeAdjustCenterConnectorPoints } from "./edge-endpoints.ts";
 import { edgePointsFromGeometry, parseEdgeLabelFields, parseGeometry } from "./mx-geometry.ts";
 import { inferShape, parseMxStyle } from "./style.ts";

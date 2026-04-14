@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const pkgRoot = join(import.meta.dir, "..");
+const pkgRoot = join(import.meta.dir, "..", "..");
 
 /**
  * 写入 `mx2svg/.test-output/{subdir}/{name}.svg`（仅本地目视；目录已 .gitignore）。

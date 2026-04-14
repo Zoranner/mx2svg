@@ -1,4 +1,4 @@
-import { EMPTY_MX_STYLE, svgFontAttrString } from "../mx-font.ts";
+import { EMPTY_MX_STYLE, svgFontAttrString } from "../text/mx-font.ts";
 import { esc } from "./svg-util.ts";
 
 export interface LabelBlockOpts {

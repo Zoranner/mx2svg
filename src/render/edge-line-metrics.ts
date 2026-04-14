@@ -1,17 +1,21 @@
+import type { DiagramEdge } from "../core/model.ts";
 import {
   buildCurvedEdgePathD,
   curvedEdgeToPolylineApprox,
   isCurvedEdgeStyle,
-} from "../edge-curve.ts";
-import { buildJumpPathDAndPolyline, collectJumpMap, type EdgeWaypointRef } from "../edge-jump.ts";
+} from "../edge/edge-curve.ts";
+import {
+  buildJumpPathDAndPolyline,
+  collectJumpMap,
+  type EdgeWaypointRef,
+} from "../edge/edge-jump.ts";
 import {
   buildRoundedOrthogonalPathD,
   edgePolylineForLengthAndBounds,
   edgeRoundedArcSizeFromStyle,
   roundedOrthogonalToPolylineApprox,
   useRoundedOrthogonalPath,
-} from "../edge-rounded.ts";
-import type { DiagramEdge } from "../model.ts";
+} from "../edge/edge-rounded.ts";
 
 export interface EdgeLineMetrics {
   metricsPolyline: { x: number; y: number }[];

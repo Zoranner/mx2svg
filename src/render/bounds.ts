@@ -1,4 +1,4 @@
-import type { DiagramEdge, DiagramNode } from "../model.ts";
+import type { DiagramEdge, DiagramNode } from "../core/model.ts";
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { bumpRotatedRect } from "./svg-util.ts";
 

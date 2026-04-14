@@ -1,4 +1,4 @@
-import type { NodeShape } from "../model.ts";
+import type { NodeShape } from "../core/model.ts";
 
 /** `a=b;c=d` → Map；忽略空段。 */
 export function parseMxStyle(styleAttr: string | undefined): Map<string, string> {
