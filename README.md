@@ -7,7 +7,7 @@
 - 解析 `<mxfile>` 下单页或多页；支持 **diagram 内压缩 payload**（base64 + raw deflate，与 draw.io 一致）。
 - 解析 **顶点**（`vertex="1"`）与 **mxGeometry**（x, y, width, height）。
 - 样式：`fillColor` / `strokeColor` / `strokeWidth` / `fontSize`；形状：`rect`、**`ellipse`**（token或 `shape=ellipse`/`circle`）、**`shape=rhombus`/`diamond`、`hexagon`、`parallelogram`、`cylinder`/`cylinder2`/`cylinder3`**（SVG `path` 近似，与 draw.io 非像素级一致）。
-- **边**（阶段 2+）：`edge="1"`，从 `mxGeometry` 的 `sourcePoint` / `Array` 中间点 / `targetPoint` 取折线；若无点但有 `source`+`target`，则连接两顶点中心。支持 `dashed`、`endArrow`（非 `none`/`open` 时画三角箭头）。**边标签**（`value`）画在折线 **总长中点**，默认 `fontSize=11`，带浅色描边以便叠线阅读；与顶点相同经 HTML/实体清洗与多行 `\n` 规则。
+- **边**（阶段 2+）：`edge="1"`，从 `mxGeometry` 的 `sourcePoint` / `Array` 中间点 / `targetPoint` 取折线；若无点但有 `source`+`target`，则连接两顶点中心。支持 `dashed`、`endArrow`（默认三角箭头，可为 `none`/`open` 等）、显式 **`startArrow`**（非 `none` 时在路径起点画三角箭头）。**边标签**（`value`）默认在折线 **总长中点**；若存在 **`mxPoint as="label"`** 且 **`x` 在 [0,1]**，则按该比例取路径上一点并做法向 **`y`** 像素偏移；若 **`relative=1`** 且 geometry 带 **`x`/`y`**，则视为相对中点的平移。`fontSize` 默认 11，文本带浅色描边；标签文本与顶点相同经 HTML/实体与多行规则处理。
 - **阶段 3**：矩形 **圆角**（`rounded=1` 比例圆角、`rounded=N` 像素半径、`rounded=0` 关闭；可选 `arcSize`）；顶点与边的 **虚线描边**（`dashed`）；**线性渐变**（`gradientColor` + `gradientDirection`：`north`/`south`/`east`/`west` 及四角别名，`objectBoundingBox`）。
 - **阶段 4**：顶点/边 `value` 中常见 **HTML 片段**与实体 **降级为纯文本**（行内空白折叠）。
 - **阶段 5（子集）**：**显式多行**——`</p>`、`</div>`、`</tr>`、`<br>` 与源码换行等产生逻辑行，SVG 内用 **`<tspan>` 垂直堆叠**并在形状内大致居中；**不按框宽自动折行**、不做字形测量（可选后续接入 Pretext 等）。

@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { decompressDiagramInner } from "./decompress.ts";
 import { mxLabelToPlainText } from "./mx-label-plain.ts";
+import { polylinePointAtLengthFraction, polylinePointWithPerpendicularOffset } from "./polyline.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 
@@ -100,6 +101,50 @@ function edgePointsFromGeometry(geo: Record<string, unknown> | undefined): { x: 
   return null;
 }
 
+function mxPointByAs(
+  geo: Record<string, unknown> | undefined,
+  targetAs: string,
+): { x: number; y: number } | null {
+  if (!geo) return null;
+  const list = asArray<Record<string, unknown>>(
+    geo.mxPoint as Record<string, unknown> | Record<string, unknown>[],
+  );
+  for (const o of list) {
+    if (strAttr(o, "as") === targetAs) {
+      return parseMxPoint(o);
+    }
+  }
+  return null;
+}
+
+/** draw.io：mxPoint as="label" 时 x 在 [0,1] 表示沿路径比例，y 为法向像素偏移；relative=1 时 geometry 的 x/y 为相对折线中点的偏移。 */
+function resolveEdgeLabelPosition(
+  geo: Record<string, unknown> | undefined,
+  points: { x: number; y: number }[],
+): { x: number; y: number } | undefined {
+  if (!geo || points.length < 2) return undefined;
+
+  const labelMx = mxPointByAs(geo, "label");
+  if (labelMx && (labelMx.x !== 0 || labelMx.y !== 0)) {
+    const { x: lx, y: ly } = labelMx;
+    if (lx >= 0 && lx <= 1) {
+      return polylinePointWithPerpendicularOffset(points, lx, ly);
+    }
+    return { x: lx, y: ly };
+  }
+
+  if (strAttr(geo, "relative") === "1") {
+    const ox = numAttr(geo, "x", 0);
+    const oy = numAttr(geo, "y", 0);
+    if (ox !== 0 || oy !== 0) {
+      const mid = polylinePointAtLengthFraction(points, 0.5);
+      return { x: mid.x + ox, y: mid.y + oy };
+    }
+  }
+
+  return undefined;
+}
+
 function parseGraphModelObject(modelObj: Record<string, unknown>): {
   nodes: DiagramNode[];
   edges: DiagramEdge[];
@@ -174,12 +219,14 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const style = parseMxStyle(styleStr);
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
+    const labelPosition = resolveEdgeLabelPosition(geoObj, pts);
 
     edges.push({
       id,
       parentId: parent,
       points: pts,
       label: mxLabelToPlainText(value),
+      ...(labelPosition ? { labelPosition } : {}),
       style,
       ...(source ? { source } : {}),
       ...(target ? { target } : {}),

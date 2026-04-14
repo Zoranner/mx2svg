@@ -1,4 +1,5 @@
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
+import { polylinePointAtLengthFraction } from "./polyline.ts";
 import { shapePathD } from "./shape-path.ts";
 
 export interface RenderOptions {
@@ -139,36 +140,6 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
   return { minX, minY, maxX, maxY };
 }
 
-/** 折线总长上 `fraction`（0–1）处的点；退化段长度按 0 处理。 */
-function polylinePointAtLengthFraction(
-  points: { x: number; y: number }[],
-  fraction: number,
-): { x: number; y: number } {
-  if (points.length === 0) return { x: 0, y: 0 };
-  if (points.length === 1) return points[0];
-  const segs: number[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const dx = points[i + 1].x - points[i].x;
-    const dy = points[i + 1].y - points[i].y;
-    segs.push(Math.hypot(dx, dy));
-  }
-  const total = segs.reduce((a, b) => a + b, 0);
-  if (total <= 0) return points[0];
-  let dist = Math.max(0, Math.min(1, fraction)) * total;
-  for (let i = 0; i < segs.length; i++) {
-    const sl = segs[i];
-    if (dist <= sl) {
-      const t = sl <= 0 ? 0 : dist / sl;
-      return {
-        x: points[i].x + t * (points[i + 1].x - points[i].x),
-        y: points[i].y + t * (points[i + 1].y - points[i].y),
-      };
-    }
-    dist -= sl;
-  }
-  return points[points.length - 1];
-}
-
 interface LabelBlockOpts {
   /** 浅色描边，叠在折线等深色背景上时提高可读性 */
   contrastStroke?: boolean;
@@ -210,24 +181,34 @@ function wantsArrowEnd(style: Map<string, string>): boolean {
   return v !== "none" && v !== "open" && v !== "oval" && v !== "diamond";
 }
 
+/** 仅当显式设置 `startArrow`且非 none/open 等时绘制（与 draw.io 默认无端箭头一致）。 */
+function wantsArrowStart(style: Map<string, string>): boolean {
+  const v = style.get("startarrow");
+  if (v === undefined) return false;
+  const l = v.toLowerCase();
+  return l !== "none" && l !== "" && l !== "open" && l !== "oval" && l !== "diamond";
+}
+
 function renderEdge(e: DiagramEdge): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
   const pts = e.points.map((p) => `${p.x},${p.y}`).join(" ");
   const dashAttr = strokeDashAttr(e.style);
-  const arrow = wantsArrowEnd(e.style);
-  const markerEnd = arrow ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
+  const arrowEnd = wantsArrowEnd(e.style);
+  const arrowStart = wantsArrowStart(e.style);
+  const markerEnd = arrowEnd ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
+  const markerStart = arrowStart ? ' marker-start="url(#mx2svg-arrow-start)"' : "";
 
   const parts: string[] = [
     `<polyline points="${pts}" fill="none" stroke="${esc(
       stroke,
-    )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerEnd}/>`,
+    )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`,
   ];
 
   if (e.label.trim()) {
-    const { x: lx, y: ly } = polylinePointAtLengthFraction(e.points, 0.5);
-    parts.push(renderSvgLabelBlock(lx, ly, fs, e.label, { contrastStroke: true }));
+    const anchor = e.labelPosition ?? polylinePointAtLengthFraction(e.points, 0.5);
+    parts.push(renderSvgLabelBlock(anchor.x, anchor.y, fs, e.label, { contrastStroke: true }));
   }
 
   return `<g data-mx2svg-edge="${esc(e.id)}">${parts.join("")}</g>`;
@@ -275,6 +256,9 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
 
 const ARROW_DEFS = `<marker id="mx2svg-arrow-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
  <path d="M 0 0 L 10 5 L 0 10 z" fill="#333333"/>
+  </marker>
+  <marker id="mx2svg-arrow-start" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+ <path d="M 10 0 L 0 5 L 10 10 z" fill="#333333"/>
   </marker>`;
 
 export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): string {

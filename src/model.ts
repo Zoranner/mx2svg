@@ -27,6 +27,8 @@ export interface DiagramEdge {
   parentId: string | null;
   points: { x: number; y: number }[];
   label: string;
+  /** 边标签锚点（页面坐标）；缺省为折线几何中点。 */
+  labelPosition?: { x: number; y: number };
   style: Map<string, string>;
   source?: string;
   target?: string;

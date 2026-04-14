@@ -81,6 +81,16 @@ describe("convert", () => {
     expect(svg).toContain("marker-end");
   });
 
+  test("renders startArrow when startArrow is set in style", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "startArrow=classic;endArrow=classic;strokeColor=#82b366;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-start="url(#mx2svg-arrow-start)"');
+    expect(svg).toContain("marker-end");
+  });
+
   test("renders edge label at midpoint of polyline with contrast stroke", () => {
     const xml = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
@@ -91,6 +101,38 @@ describe("convert", () => {
     expect(svg).toContain('x="250"');
     expect(svg).toContain('y="115"');
     expect(svg).toContain('paint-order="stroke fill"');
+  });
+
+  test("edge label uses mxGeometry x y offset from midpoint when relative=1", () => {
+    const xml = minimalMxfile
+      .replace(
+        '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+        '<mxCell id="4" value="off" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;">',
+      )
+      .replace(
+        '<mxGeometry relative="1" as="geometry"/>',
+        '<mxGeometry relative="1" as="geometry" x="30" y="-5"/>',
+      );
+    const svg = convert(xml);
+    expect(svg).toContain("off");
+    expect(svg).toContain('x="280"');
+    expect(svg).toContain('y="110"');
+  });
+
+  test("edge label mxPoint as label uses fraction along path", () => {
+    const xml = minimalMxfile
+      .replace(
+        '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+        '<mxCell id="4" value="frac" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;">',
+      )
+      .replace(
+        '<mxGeometry relative="1" as="geometry"/>',
+        '<mxGeometry relative="1" as="geometry"><mxPoint x="0.25" y="0" as="label"/></mxGeometry>',
+      );
+    const svg = convert(xml);
+    expect(svg).toContain("frac");
+    expect(svg).toContain('x="205"');
+    expect(svg).toContain('y="112.5"');
   });
 
   test("renders edge from explicit mxPoint path", () => {
