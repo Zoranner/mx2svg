@@ -16,7 +16,14 @@ import {
 } from "./edge-label-layout.ts";
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
-import { colorOr, esc, groupOpacityAttr, strokeDashAttr } from "./svg-util.ts";
+import {
+  colorOr,
+  esc,
+  fillOpacityAttr,
+  groupOpacityAttr,
+  strokeDashAttr,
+  strokeOpacityAttr,
+} from "./svg-util.ts";
 
 export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: string): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
@@ -25,16 +32,17 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
   const dashAttr = strokeDashAttr(e.style);
   const markerEnd = markerEndAttr(parseEndArrow(e.style), stroke);
   const markerStart = markerStartAttr(parseStartArrow(e.style), stroke);
+  const strokeOp = strokeOpacityAttr(e.style);
 
   const pathD = m.pathD;
   const lineEl =
     pathD != null
       ? `<path d="${esc(pathD)}" fill="none" stroke="${esc(
           stroke,
-        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`
+        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`
       : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
           stroke,
-        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`;
+        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`;
 
   const parts: string[] = [lineEl];
 
@@ -70,7 +78,7 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
       tcx = lay.tcx;
       tcy = lay.tcy;
       parts.push(
-        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"/>`,
+        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOpacityAttr(e.style)}/>`,
       );
     } else {
       const c = edgeLabelContentCenter(anchor, tw, th, ah, av);

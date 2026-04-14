@@ -609,6 +609,34 @@ describe("convert", () => {
     expect(convert(xml)).toMatch(/data-mx2svg-edge="4"[^>]*opacity="0\.4"/);
   });
 
+  test("vertex fillOpacity emits fill-opacity on shape", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fillOpacity=40;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/fill-opacity="0\.4"/);
+    expect(inner).not.toMatch(/stroke-opacity=/);
+  });
+
+  test("vertex strokeOpacity emits stroke-opacity on shape", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;strokeOpacity=50;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/stroke-opacity="0\.5"/);
+  });
+
+  test("edge strokeOpacity applies to line geometry", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;strokeOpacity=35;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/stroke-opacity="0\.35"/);
+  });
+
   test("vertex fontStyle=1 sets font-weight bold on label", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;fontStyle=1;");
     const svg = convert(xml);
