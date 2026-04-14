@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { adjustCenterConnectorEndpoints } from "./edge-endpoint-spacing.ts";
 import { decompressDiagramInner } from "./decompress.ts";
 import { mxLabelToPlainText } from "./mx-label-plain.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
@@ -202,6 +203,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const geoRaw = cell.mxGeometry;
     const geoObj = (Array.isArray(geoRaw) ? geoRaw[0] : geoRaw) as Record<string, unknown> | undefined;
     let pts = edgePointsFromGeometry(geoObj);
+    let usedCenterFallback = false;
 
     const source = strAttr(cell, "source");
     const target = strAttr(cell, "target");
@@ -213,6 +215,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
           { x: a.x + a.width / 2, y: a.y + a.height / 2 },
           { x: b.x + b.width / 2, y: b.y + b.height / 2 },
         ];
+        usedCenterFallback = true;
       }
     }
 
@@ -220,6 +223,16 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
 
     const styleStr = strAttr(cell, "style");
     const style = parseMxStyle(styleStr);
+
+    if (usedCenterFallback && pts.length === 2 && source && target) {
+      const a = nodeById.get(source);
+      const b = nodeById.get(target);
+      const spacing = Number(style.get("spacing"));
+      if (a && b && Number.isFinite(spacing) && spacing > 0) {
+        const adj = adjustCenterConnectorEndpoints(pts[0], pts[1], a, b, spacing);
+        if (adj) pts = adj;
+      }
+    }
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
     const labelFields = parseEdgeLabelFields(geoObj);

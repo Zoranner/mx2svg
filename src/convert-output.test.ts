@@ -211,4 +211,14 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("Georgia");
     dump("17-vertex-font-bold-georgia", svg);
   });
+
+  test("edge spacing center fallback", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=#82b366;spacing=12;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<polyline");
+    dump("18-edge-spacing", svg);
+  });
 });

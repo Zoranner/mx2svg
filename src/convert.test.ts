@@ -154,6 +154,24 @@ describe("convert", () => {
     expect(svg).toContain("<polyline");
     expect(svg).toContain('data-mx2svg-edge="4"');
     expect(svg).toContain("marker-end");
+    expect(svg).toMatch(/160,110/);
+    expect(svg).toMatch(/340,120/);
+  });
+
+  test("edge spacing on center fallback shifts polyline away from node centers", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=#82b366;spacing=12;",
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const m = inner.match(/points="([^"]+)"/);
+    expect(m).not.toBeNull();
+    const pts = m![1].split(/\s+/).filter(Boolean);
+    const [fx, fy] = pts[0].split(",").map(Number);
+    expect(fx).toBeGreaterThan(200);
+    expect(fy).toBeGreaterThan(108);
+    expect(inner).not.toContain("160,110");
   });
 
   test("renders startArrow when startArrow is set in style", () => {
