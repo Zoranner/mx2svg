@@ -160,6 +160,43 @@ describe("convert", () => {
     expect(svg).toMatch(/340,120/);
   });
 
+  test("orthogonalEdgeStyle on center fallback yields elbow polyline", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=#82b366;edgeStyle=orthogonalEdgeStyle;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const m = inner.match(/points="([^"]+)"/);
+    expect(m).not.toBeNull();
+    const pts = m![1].split(/\s+/).filter(Boolean);
+    expect(pts.length).toBe(3);
+    expect(pts[1]).toBe("340,110");
+  });
+
+  test("edgeLabel child mxCell supplies edge label text", () => {
+    const xml = minimalMxfile.replace(
+      "</root>",
+      `        <mxCell id="5" value="from child" style="edgeLabel;html=1;align=center;fontSize=11;" vertex="1" connectable="0" parent="4">
+          <mxGeometry x="0.5" y="0" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>`,
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("from child");
+  });
+
+  test("shape flexArrow with strokeColor none uses fillColor as visible stroke", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="shape=flexArrow;endArrow=classic;strokeColor=none;fillColor=#e1d5e7;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke="#e1d5e7"');
+    expect(inner).toContain("marker-end");
+  });
+
   test("edge spacing on center fallback shifts polyline away from node centers", () => {
     const xml = minimalMxfile.replace(
       "endArrow=classic;strokeColor=#82b366;",
@@ -966,9 +1003,7 @@ describe("convert", () => {
   test("vertex flipH=1 renders label after flip group (text not mirror-transformed)", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipH=1;");
     const svg = convert(xml);
-    expect(svg).toMatch(
-      /scale\(-1,\s*1\)[^>]*>[\s\S]*?<\/g>\s*<text[\s\S]*?>[\s\S]*?Hello/,
-    );
+    expect(svg).toMatch(/scale\(-1,\s*1\)[^>]*>[\s\S]*?<\/g>\s*<text[\s\S]*?>[\s\S]*?Hello/);
   });
 
   test("vertex flipH with rotation combines translate rotate scale", () => {

@@ -22,11 +22,18 @@ export function edgeLabelAnchor(
   const pad = edgeLabelPaddingPx(e.style);
 
   if (e.edgeLabelPath) {
-    return polylinePointWithPerpendicularOffset(
+    let pt = polylinePointWithPerpendicularOffset(
       metrics,
       e.edgeLabelPath.fraction,
       e.edgeLabelPath.normalOffset + pad,
     );
+    if (e.edgeLabelMidOffset) {
+      pt = {
+        x: pt.x + e.edgeLabelMidOffset.dx,
+        y: pt.y + e.edgeLabelMidOffset.dy,
+      };
+    }
+    return pt;
   }
   if (e.edgeLabelMidOffset) {
     const base =

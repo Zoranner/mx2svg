@@ -44,8 +44,15 @@ export function renderEdge(
   g: GradientBuildContext,
   defaultFontStack?: string,
 ): string {
-  const strokeRaw = mxPaintColor(e.style, "strokecolor", "#000000");
-  const sw = strokeWidthPx(e.style, 1);
+  let strokeRaw = mxPaintColor(e.style, "strokecolor", "#000000");
+  let sw = strokeWidthPx(e.style, 1);
+  const shapeLower = (e.style.get("shape") ?? "").toLowerCase();
+  const isFlexArrow = shapeLower === "flexarrow";
+  if (isFlexArrow && (strokeRaw === "none" || sw === 0)) {
+    const fillFallback = mxPaintColor(e.style, "fillcolor", "#888888");
+    strokeRaw = fillFallback !== "none" ? fillFallback : "#888888";
+    if (sw === 0) sw = 1;
+  }
   const strokeNone = strokeRaw === "none" || sw === 0;
   const stroke = strokeNone ? "none" : strokeRaw;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;

@@ -1,9 +1,38 @@
 import type { DiagramEdge, DiagramNode } from "../core/model.ts";
+import {
+  orthogonalizeTwoPointPolyline,
+  styleIsOrthogonalEdge,
+} from "../edge/edge-orthogonal-fallback.ts";
 import { mxLabelToPlainText } from "../text/mx-label-plain.ts";
 import { maybeAdjustCenterConnectorPoints } from "./edge-endpoints.ts";
-import { edgePointsFromGeometry, parseEdgeLabelFields, parseGeometry } from "./mx-geometry.ts";
+import {
+  edgePointsFromGeometry,
+  parseEdgeLabelChildGeometry,
+  parseEdgeLabelFields,
+  parseGeometry,
+} from "./mx-geometry.ts";
 import { inferShape, parseMxStyle } from "./style.ts";
 import { asArray, numAttr, strAttr } from "./xml-helpers.ts";
+
+const EDGE_LABEL_STYLE_KEYS = [
+  "fontsize",
+  "fontcolor",
+  "fontstyle",
+  "align",
+  "verticalalign",
+  "labelbackgroundcolor",
+  "labelbordercolor",
+  "labelborderwidth",
+  "whitespace",
+  "fontfamily",
+  "letterspacing",
+  "lineheight",
+  "labelpadding",
+] as const;
+
+function styleHasEdgeLabel(style: Map<string, string>): boolean {
+  return style.has("edgelabel");
+}
 
 export function parseGraphModelObject(modelObj: Record<string, unknown>): {
   nodes: DiagramNode[];
@@ -36,6 +65,8 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
 
     const styleStr = strAttr(cell, "style");
     const style = parseMxStyle(styleStr);
+    if (styleHasEdgeLabel(style)) continue;
+
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
     const rotation = numAttr(geoObj as Record<string, unknown>, "rotation", 0);
@@ -96,6 +127,9 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
       style,
       nodeById,
     });
+    if (usedCenterFallback && pts.length === 2 && styleIsOrthogonalEdge(style)) {
+      pts = orthogonalizeTwoPointPolyline(pts);
+    }
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
     const tooltip = strAttr(cell, "tooltip");
@@ -115,6 +149,48 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
       ...(target ? { target } : {}),
       ...(tooltip != null && tooltip !== "" ? { tooltip } : {}),
     });
+  }
+
+  const edgeById = new Map(edges.map((e) => [e.id, e] as const));
+
+  for (const cell of cells) {
+    const id = strAttr(cell, "id");
+    if (!id || id === "0" || id === "1") continue;
+    if (strAttr(cell, "edge") === "1") continue;
+    if (strAttr(cell, "vertex") !== "1") continue;
+
+    const styleStr = strAttr(cell, "style");
+    const vStyle = parseMxStyle(styleStr);
+    if (!styleHasEdgeLabel(vStyle)) continue;
+
+    const parent = strAttr(cell, "parent");
+    if (!parent) continue;
+    const edge = edgeById.get(parent);
+    if (!edge) continue;
+
+    const rawVal = strAttr(cell, "value") ?? "";
+    const text = mxLabelToPlainText(rawVal);
+    if (text.trim()) {
+      edge.label = edge.label.trim() ? `${edge.label}\n${text}` : text;
+    }
+
+    for (const k of EDGE_LABEL_STYLE_KEYS) {
+      const v = vStyle.get(k);
+      if (v !== undefined && v !== "") edge.style.set(k, v);
+    }
+
+    const geoRaw = cell.mxGeometry;
+    const geoObj = (Array.isArray(geoRaw) ? geoRaw[0] : geoRaw) as
+      | Record<string, unknown>
+      | undefined;
+    const childLabelGeo = parseEdgeLabelChildGeometry(geoObj);
+    if (childLabelGeo.edgeLabelPath != null) edge.edgeLabelPath = childLabelGeo.edgeLabelPath;
+    if (childLabelGeo.edgeLabelMidOffset != null)
+      edge.edgeLabelMidOffset = childLabelGeo.edgeLabelMidOffset;
+    if (childLabelGeo.labelPosition != null) edge.labelPosition = childLabelGeo.labelPosition;
+
+    const geoW = geoObj ? numAttr(geoObj, "width", NaN) : NaN;
+    if (Number.isFinite(geoW) && geoW > 0) edge.labelWrapWidth = geoW;
   }
 
   return { nodes, edges };

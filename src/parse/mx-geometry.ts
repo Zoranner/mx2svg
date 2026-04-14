@@ -116,3 +116,50 @@ export function parseEdgeLabelFields(
 
   return out;
 }
+
+/**
+ * `edgeLabel` 子 cell 的 mxGeometry：`relative` + `x,y`，可选 **`mxPoint as="offset"`**。
+ * **`x` 在 [0,1]** 时视为沿路径比例，与 **`edgeLabelMidOffset`** 可并存（锚点先按比例再平移）。
+ */
+export function parseEdgeLabelChildGeometry(
+  geo: Record<string, unknown> | undefined,
+): Pick<DiagramEdge, "labelPosition" | "edgeLabelPath" | "edgeLabelMidOffset"> {
+  if (!geo) return {};
+
+  const offsetPt = mxPointByAs(geo, "offset");
+  const ox = offsetPt?.x ?? 0;
+  const oy = offsetPt?.y ?? 0;
+
+  const labelMx = mxPointByAs(geo, "label");
+  if (labelMx && (labelMx.x !== 0 || labelMx.y !== 0)) {
+    const { x: lx, y: ly } = labelMx;
+    if (lx >= 0 && lx <= 1) {
+      const out: Pick<DiagramEdge, "edgeLabelPath" | "edgeLabelMidOffset"> = {
+        edgeLabelPath: { fraction: lx, normalOffset: ly },
+      };
+      if (ox !== 0 || oy !== 0) out.edgeLabelMidOffset = { dx: ox, dy: oy };
+      return out;
+    }
+    return { labelPosition: { x: lx, y: ly } };
+  }
+
+  if (strAttr(geo, "relative") === "1") {
+    const x = numAttr(geo, "x", 0);
+    const y = numAttr(geo, "y", 0);
+    if (x >= 0 && x <= 1) {
+      const out: Pick<DiagramEdge, "edgeLabelPath" | "edgeLabelMidOffset"> = {
+        edgeLabelPath: { fraction: x, normalOffset: y },
+      };
+      if (ox !== 0 || oy !== 0) out.edgeLabelMidOffset = { dx: ox, dy: oy };
+      return out;
+    }
+    if (x !== 0 || y !== 0 || ox !== 0 || oy !== 0) {
+      return { edgeLabelMidOffset: { dx: x + ox, dy: y + oy } };
+    }
+  }
+
+  if (ox !== 0 || oy !== 0) {
+    return { edgeLabelMidOffset: { dx: ox, dy: oy } };
+  }
+  return {};
+}
