@@ -11,7 +11,7 @@ bun test
 
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
-- **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`）
+- **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`、`font-stack-stdout.svg`）
 - **`convert/`**：**`convert-output.test.ts`** 写入的 **18+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**、边标签比例、双开箭头等），便于逐项打开对照
 
 ### 程序化集成（开发中直接使用）
@@ -56,7 +56,7 @@ bun run ./src/cli.ts -s "<mxfile>...</mxfile>" -o out.svg
 type path\to\diagram.drawio | bun run ./src/cli.ts -
 ```
 
-常用选项：`--page <n>`、`--padding <n>`、`--bg <颜色>`；`--help` 查看全部说明。
+常用选项：`--page <n>`、`--padding <n>`、`--bg <颜色>`、**`--font-stack`**（与 **`defaultFontStack`** 一致）；`--help` 查看全部说明。
 
 ## 依赖
 

@@ -31,6 +31,7 @@ function printHelp(): void {
   --page <n>            页索引，从 0 开始（默认 0）
   --padding <n>         viewBox 内边距（默认 8）
   --bg <颜色>           背景色（默认 #ffffff）
+  --font-stack <栈>     无 fontFamily 的单元格使用的 font-family（同 API defaultFontStack）
   -h, --help            显示此说明
 `);
 }
@@ -50,6 +51,7 @@ function main(): void {
   let pageIndex = 0;
   let padding = 8;
   let backgroundColor = "#ffffff";
+  let defaultFontStack: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -101,6 +103,15 @@ function main(): void {
       backgroundColor = v;
       continue;
     }
+    if (a === "--font-stack") {
+      const v = argv[++i];
+      if (!v || !v.trim()) {
+        console.error("缺少 --font-stack 内容（例如: Inter, system-ui, sans-serif）");
+        process.exit(1);
+      }
+      defaultFontStack = v;
+      continue;
+    }
     if (a.startsWith("-")) {
       console.error(`未知参数: ${a}`);
       printHelp();
@@ -150,7 +161,12 @@ function main(): void {
     }
   }
 
-  const svg = convert(xml, { pageIndex, padding, backgroundColor });
+  const svg = convert(xml, {
+    pageIndex,
+    padding,
+    backgroundColor,
+    ...(defaultFontStack !== undefined ? { defaultFontStack } : {}),
+  });
 
   let outPath = output;
   if (outPath === undefined && (source.kind === "literal" || source.kind === "stdin")) {

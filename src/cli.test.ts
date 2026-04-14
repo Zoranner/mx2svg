@@ -31,4 +31,24 @@ describe("cli", () => {
     expect(r.success).toBe(true);
     expect(readFileSync(out, "utf8")).toContain("<svg");
   });
+
+  test("--font-stack is passed to convert", () => {
+    const r = Bun.spawnSync({
+      cmd: [
+        "bun",
+        "run",
+        join(import.meta.dir, "cli.ts"),
+        "-s",
+        sampleXml,
+        "--font-stack",
+        "Georgia, serif",
+      ],
+      cwd: pkgRoot,
+    });
+    expect(r.success).toBe(true);
+    const svg = new TextDecoder().decode(r.stdout);
+    expect(svg).toContain("Georgia");
+    expect(svg).toContain("Hello");
+    writeTestOutputSvg("cli", "font-stack-stdout", svg);
+  });
 });
