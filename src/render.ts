@@ -144,6 +144,8 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
 interface LabelBlockOpts {
   /** 浅色描边，叠在折线等深色背景上时提高可读性 */
   contrastStroke?: boolean;
+  /** 对应 draw.io `fontColor`，默认 `#000000` */
+  fill?: string;
 }
 
 /** 形状内居中标签：单行用 dominant-baseline；多行用绝对 y 的 tspan 垂直居中。 */
@@ -159,13 +161,14 @@ function renderSvgLabelBlock(
 
   const lh = fs * 1.2;
   const escLine = (s: string) => esc(s.trim());
+  const fill = esc(opts?.fill ?? "#000000");
   const halo =
     opts?.contrastStroke === true
       ? ' paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"'
       : "";
 
   if (lines.length === 1) {
-    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000"${halo}>${escLine(
+    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="${fill}"${halo}>${escLine(
       lines[0],
     )}</text>`;
   }
@@ -174,7 +177,7 @@ function renderSvgLabelBlock(
   const tspans = lines
     .map((line, i) => `<tspan x="${cx}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
     .join("");
-  return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="#000000"${halo}>${tspans}</text>`;
+  return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="${fill}"${halo}>${tspans}</text>`;
 }
 
 function wantsArrowEnd(style: Map<string, string>): boolean {
@@ -209,7 +212,10 @@ function renderEdge(e: DiagramEdge): string {
 
   if (e.label.trim()) {
     const anchor = e.labelPosition ?? polylinePointAtLengthFraction(e.points, 0.5);
-    parts.push(renderSvgLabelBlock(anchor.x, anchor.y, fs, e.label, { contrastStroke: true }));
+    const labelFill = colorOr(e.style, "fontcolor", "#000000");
+    parts.push(
+      renderSvgLabelBlock(anchor.x, anchor.y, fs, e.label, { contrastStroke: true, fill: labelFill }),
+    );
   }
 
   return `<g data-mx2svg-edge="${esc(e.id)}">${parts.join("")}</g>`;
@@ -251,7 +257,8 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
     const ty = n.y + n.height / 2;
     const wrap =
       n.style.get("whitespace") === "wrap" ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, 8) : n.label;
-    parts.push(renderSvgLabelBlock(tx, ty, fs, wrap));
+    const labelFill = colorOr(n.style, "fontcolor", "#000000");
+    parts.push(renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill }));
   }
 
   return `<g data-mx2svg-id="${esc(n.id)}">${parts.join("")}</g>`;

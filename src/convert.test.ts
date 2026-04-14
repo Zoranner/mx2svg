@@ -191,6 +191,16 @@ describe("convert", () => {
     expect(svg).toContain("Line2");
   });
 
+  test("vertex fontColor sets text fill", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontColor=#cc0000;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('fill="#cc0000"');
+    expect(svg).toContain("Hello");
+  });
+
   test("whiteSpace=wrap wraps long label with Pretext into multiple tspans", () => {
     const xml = minimalMxfile.replace(
       'value="Hello"',
