@@ -44,9 +44,21 @@ export function gradientDirectionToPercents(dirRaw: string): {
 }
 
 export function strokeDashAttr(style: Map<string, string>): string {
+  const patRaw = style.get("dashpattern");
+  if (patRaw != null && patRaw.trim() !== "") {
+    const parts = patRaw
+      .split(/[\s,]+/)
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (parts.length > 0) {
+      return ` stroke-dasharray="${parts.join(" ")}"`;
+    }
+  }
   const d = style.get("dashed");
   if (d === "1" || d === "true") return ' stroke-dasharray="6 4"';
   if (style.has("dashed") && (d === undefined || d === "")) return ' stroke-dasharray="6 4"';
+  const dash = style.get("dash");
+  if (dash === "1" || dash === "true") return ' stroke-dasharray="6 4"';
   return "";
 }
 
@@ -63,6 +75,13 @@ export function styleOpacityFactor01(raw: string | undefined): number | null {
   const u = trimmed.includes(".") ? Math.max(0, Math.min(1, v)) : Math.max(0, Math.min(1, v / 100));
   if (u >= 1 - 1e-9) return null;
   return u;
+}
+
+/** 标签文字 **`fontOpacity`**（键 **`fontopacity`**），规则同 **`styleOpacityFactor01`**。 */
+export function textFillOpacityAttr(style: Map<string, string>): string {
+  const u = styleOpacityFactor01(style.get("fontopacity"));
+  if (u == null) return "";
+  return ` fill-opacity="${u}"`;
 }
 
 /** 整组乘性透明度，作用于顶点/边根 `<g>`（含标签）。 */

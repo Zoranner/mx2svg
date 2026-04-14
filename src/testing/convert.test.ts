@@ -506,6 +506,38 @@ describe("convert", () => {
     expect(svg).toContain('stroke-dasharray="6 4"');
   });
 
+  test("vertex dashPattern maps to stroke-dasharray", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;dashed=1;dashPattern=8 3;",
+    );
+    expect(convert(xml)).toContain('stroke-dasharray="8 3"');
+  });
+
+  test("vertex dash=1 enables default stroke-dasharray", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;dash=1;");
+    expect(convert(xml)).toContain('stroke-dasharray="6 4"');
+  });
+
+  test("vertex fontOpacity applies fill-opacity to label text", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontOpacity=40;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain("Hello");
+    expect(inner).toMatch(/<text[^>]*fill-opacity="0\.4"/);
+  });
+
+  test("edge dashPattern on connector", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;dashed=1;dashPattern=12,4,2,4;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke-dasharray="12 4 2 4"');
+  });
+
   test("vertex multiline value renders tspans with distinct y", () => {
     const xml = minimalMxfile.replace('value="Hello"', 'value="Line1&lt;br/&gt;Line2"');
     const svg = convert(xml);

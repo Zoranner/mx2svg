@@ -1,5 +1,5 @@
 import { EMPTY_MX_STYLE, svgFontAttrString } from "../text/mx-font.ts";
-import { esc } from "./svg-util.ts";
+import { esc, textFillOpacityAttr } from "./svg-util.ts";
 
 export interface LabelBlockOpts {
   /** 浅色描边，叠在折线等深色背景上时提高可读性 */
@@ -37,7 +37,9 @@ export function renderSvgLabelBlock(
     opts?.contrastStroke === true
       ? ' paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"'
       : "";
-  const fontAttrs = svgFontAttrString(opts?.style ?? EMPTY_MX_STYLE, esc, opts?.defaultFontStack);
+  const st = opts?.style ?? EMPTY_MX_STYLE;
+  const fontAttrs = svgFontAttrString(st, esc, opts?.defaultFontStack);
+  const fontFillOp = textFillOpacityAttr(st);
 
   const ta = opts?.textAnchor ?? "middle";
   const tw = opts?.contentWidth;
@@ -48,7 +50,7 @@ export function renderSvgLabelBlock(
   }
 
   if (lines.length === 1) {
-    return `<text x="${xRef}" y="${cy}" text-anchor="${ta}" dominant-baseline="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${halo}>${escLine(
+    return `<text x="${xRef}" y="${cy}" text-anchor="${ta}" dominant-baseline="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${fontFillOp}${halo}>${escLine(
       lines[0],
     )}</text>`;
   }
@@ -57,5 +59,5 @@ export function renderSvgLabelBlock(
   const tspans = lines
     .map((line, i) => `<tspan x="${xRef}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
     .join("");
-  return `<text text-anchor="${ta}" font-size="${fs}" ${fontAttrs} fill="${fill}"${halo}>${tspans}</text>`;
+  return `<text text-anchor="${ta}" font-size="${fs}" ${fontAttrs} fill="${fill}"${fontFillOp}${halo}>${tspans}</text>`;
 }
