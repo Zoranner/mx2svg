@@ -1,6 +1,6 @@
 # mx2svg
 
-将 **draw.io / diagrams.net**（`mxfile` / `mxGraphModel`）XML 转为 **SVG**。实现独立于既有工具（如 drawio2svg），仅在「图元 / 几何」概念上可对齐参考。**MIT** 许可。
+将 **draw.io / diagrams.net**（`mxfile` / `mxGraphModel`）XML 转为 **SVG**。**MIT** 许可。
 
 ## 快速开始
 
@@ -9,7 +9,7 @@ bun install
 bun test
 ```
 
-跑完测试会在 **`mx2svg/.test-output/`** 生成示例 SVG（**已 `.gitignore`**）：**`cli/`** 来自 CLI 单测，**`convert/`** 来自 **`src/testing/convert-output.test.ts`**（24 张典型图，便于对照）。
+跑完测试会在 **`mx2svg/.test-output/`** 生成示例 SVG（**已 `.gitignore`**）：**`cli/`** 来自 CLI 单测，**`convert/`** 来自 **`src/testing/convert-output.test.ts`**（多组典型图，便于目视对照）。
 
 **代码风格**：[Biome](https://biomejs.dev/)（`biome.json`），**`.editorconfig`** 约定缩进。
 
@@ -62,22 +62,16 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 ## 仓库结构（`src/`）
 
-顶层入口只做组装或再导出，领域代码按目录拆分：
-
 | 路径 | 职责 |
 |------|------|
 | **`index.ts`** | 对外导出 `convert`、`parseDrawioXml`、`renderToSvg`、`decompressDiagramInner` 与 IR 类型 |
 | **`convert.ts`** | `parseDrawioXml` → `renderToSvg` |
-| **`parse.ts`** | 顶层 XML / 多页 /内嵌 diagram 调度 |
-| **`render.ts`** | 再导出 `renderToSvg` 与 **`RenderOptions`** |
-| **`cli.ts`** | 命令行入口 |
-| **`core/model.ts`** | IR：`DiagramDoc`、`DiagramNode`、`DiagramEdge` 等 |
-| **`parse/`** | `xml-parser`、`xml-helpers`、`decompress`、`mx-geometry`、`graph-model`、`diagram-payload`、`style`（`parseMxStyle` / `inferShape`）、`edge-endpoints`（中心连线 **`spacing`**） |
-| **`render/`** | `render-to-svg`、`render-vertex`、`render-edge`、边折线度量、标签锚点、SVG 工具与选项 |
-| **`edge/`** | 箭头、曲线 / 圆角 / 跳线、**`spacing`** 端点、折线工具 |
-| **`shape/`** | 顶点 `path` 与凸包轮廓（与 **`spacing`** 求交一致） |
-| **`text/`** | `mx-font`、`wrap-label`、`pretext-shim`、`mx-label-plain` |
-| **`testing/`** | 集成与 CLI 单测、`test-fixtures`、`test-svg-dump` |
+| **`parse.ts`** / **`parse/`** | 顶层 XML、多页、压缩 payload、样式、几何、边端点与 **`spacing`** |
+| **`render/`** | `render-to-svg`、顶点/边、标签、SVG 工具与选项 |
+| **`edge/`** | 箭头、曲线/圆角/跳线、折线工具 |
+| **`shape/`** | 顶点 `path` 与周界（与边端点 **`spacing`** 求交） |
+| **`text/`** | 字体、折行、纯文本标签、Canvas 度量垫片 |
+| **`testing/`** | 集成与 CLI 单测、fixtures、SVG 导出 |
 
 ## 依赖
 
@@ -88,70 +82,86 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 | `@chenglou/pretext` | **`whiteSpace=wrap`** 时折行与测宽 |
 | `@napi-rs/canvas` | 非浏览器环境下的 Canvas 2D / **`OffscreenCanvas`** 垫片（`src/text/pretext-shim.ts`） |
 
-## 功能参考
+## 功能参考（速查）
+
+更细的样式键名、数值规则与边角行为以 **`src/parse/style`**、**`src/render`** 与 **`src/testing`** 为准；此处只列能力边界，便于检索。
 
 ### 解析与页面
 
-- **`<mxfile>`** 下单页或多页。
-- 支持 **diagram 内压缩 payload**（与 diagrams.net 导出一致）。
+| 项 | 说明 |
+|----|------|
+| 多页 | `<mxfile>` 下单页或多页，`pageIndex` 选择 |
+| 压缩 | diagram 内 **deflate + base64** payload，与 diagrams.net 导出一致 |
 
-### 顶点
+### 顶点（节选）
 
-- **`vertex="1"`** 与 **`mxGeometry`**：位置、宽高、**`rotation`**（度，绕中心；影响 `viewBox`与 `transform`；仅旋转时仍为 **`rotate(deg, cx, cy)`**）。**`mxCell`** 的 **`tooltip`** 属性 →图元 **`<g>`** 内 **`<title>`**（浏览器原生悬停提示）。
-- **样式（节选）**：**`noLabel=1`** 或 **`noLabel=true`**（键 **`nolabel`**）：不渲染 **`value` 文本**，形状或连线仍输出。**`letterSpacing`**（键 **`letterspacing`**）：合法数字时输出 SVG **`letter-spacing`**。**`lineHeight`**（键 **`lineheight`**）：**`≤4`** 视为相对字号的倍数（如 **`1.2`**）；**`5～500`** 视为百分比（如 **`150`** = 150%）；缺省 **1.2×**字号；影响 **`whiteSpace=wrap`** 测高与多行 **`tspan`** 行距。**`link`**：标签（衬底 + 文字）外包 SVG **`<a href="…" target="_blank" rel="noopener noreferrer">`**。**`overflow=hidden`** 或 **`clip`**：顶点标签裁剪到 **`vertexLabelLayoutRect`** 标签区（**`<clipPath>`**写入 **`defs`**）。**`fillColor` / `strokeColor`** 显式 **`none`** 时分别关闭填充/描边（与 **`colorOr` 默认回退**不同）；**`strokeWidth=0`** 视为无描边。**`shadow=1`**：整图元近似投影（**`<defs>`** 内 **`feGaussianBlur` + `feOffset`**，**`filter="url(#mx2svg-drop-shadow)"`**）。**`flipH` / `flipV`**（键 **`fliph`**、**`flipv`**）：绕几何中心镜像；与 **`rotation`** 同时存在时顺序为 **平移 → 旋转 → 缩放 → 平移回**。**`spacing`**、**`spacingLeft`**、**`spacingRight`**、**`spacingTop`**、**`spacingBottom`**（键小写）：在默认 **8px** 标签区内边距上叠加；仅设 **`spacing`** 时四边共用该值，单边键存在时该边优先于 **`spacing`**（与 **`whiteSpace=wrap`** 时可用行宽一致）。**`fillColor`**、**`strokeColor`**、**`strokeWidth`**、`fontSize`、`fontColor`、**`labelBackgroundColor`**（测宽测高后圆角衬底）、**`labelBorderColor` / `labelBorderWidth`**（衬底矩形描边；宽默认 **1**）、**`double=1`**（**`rect`** / **`ellipse`** 双线框：先整块填充，再外缘与内缩描边；无描边时不画双线）、**`align` / `verticalAlign`**（在内缩标签区内布置标签块，语义与边标签相同；**`document`** 时底边为折痕上方）、**`opacity`**（整图元 `<g>`，与下两项相乘）、**`fillOpacity` / `strokeOpacity`**（style 键 **`fillopacity`**、**`strokeopacity`**；仅作用于填充或描边，数值规则同 **`opacity`**）、**`linecap` / `linejoin`**（键小写；**`linecap`**：`flat`→SVG `butt`，及 **`square`**、**`round`**；**`linejoin`**：**`miter`**、**`round`**、**`bevel`**；未设时 **`path` 形状**仍为 **`linejoin=round`**，**`rect`/`ellipse`** 不强行改 SVG 默认）、**`miterLimit` / `strokeMiterlimit`**（键 **`miterlimit`** 或 **`strokemiterlimit`**，输出 SVG **`stroke-miterlimit`**）、矩形 **`rounded`** / **`arcSize`**、**`dashed`** / **`dash=1`**（默认 **`6 4`**，不按线宽缩放）、**`dashPattern`**（键 **`dashpattern`**；逗号或空白分隔正数，映射 **`stroke-dasharray`**，优先于默认虚线；未设 **`fixDash=1`** 时各段按当前 **`strokeWidth`** 缩放）、**`fixDash`**（键 **`fixdash`**；**`1`/`true`** 时 **`dashPattern`** 为固定像素）、**`fontOpacity`**（键 **`fontopacity`**；标签文字 **`fill-opacity`**，规则同 **`opacity`**）、**线性渐变**（`gradientColor` + `gradientDirection`，`objectBoundingBox`；**`fillColor=none`** 时不生成渐变）。
-- **形状**（SVG `path` / `line` 近似，与 draw.io **非像素级**一致）：
+| 类别 | 已覆盖（示例） |
+|------|----------------|
+| 几何 | 位置、宽高、**`rotation`**（绕中心）、**`flipH` / `flipV`** |
+| 形状 | 默认 **`rect` / `ellipse`**；**`rhombus`**、**`hexagon`**、**`parallelogram`**、**`triangle`**（方向）、**`trapezoid`** 等；**`cylinder`**、**`cloud`**、**`document`**、**`dataStorage`**、**`internalStorage`** 等 |
+| 填充描边 | **`fillColor` / `strokeColor`**（含 **`none`**）、**`strokeWidth`**、**`opacity`**、**`fillOpacity` / `strokeOpacity`**、**`rounded` / `arcSize`**、**`double`**（部分形状） |
+| 虚线 | **`dashed` / `dash`**、**`dashPattern`**、**`fixDash`**（是否按线宽缩放） |
+| 线端样式 | **`linecap` / `linejoin`**、**`miterLimit`** |
+| 渐变 | **`gradientColor` + `gradientDirection`**（`objectBoundingBox`） |
+| 标签区 | **`align` / `verticalAlign`**、**`spacing*`**（标签区内边距）、**`noLabel`**、**`letterSpacing` / `lineHeight`** |
+| 标签装饰 | **`labelBackgroundColor`**、**`labelBorderColor` / `labelBorderWidth`**、**`overflow=hidden` / `clip`**（**`clipPath`**） |
+| 其它 | **`shadow`**、**`link`**（**`<a>`**）、**`tooltip`**（**`<title>`**）、**`fontStyle` / `fontFamily` / `fontSize` / `fontColor` / `fontOpacity`** |
 
-  | 类型 | 说明 |
-  |------|------|
-  | 默认 | `rect`；`ellipse`（`ellipse` token 或 `shape=ellipse` / `circle`） |
-  | 多边形 / 流程图常用 | `rhombus`、`diamond`、`hexagon`、`pentagon`、`parallelogram`、`triangle`（`direction`：north / south / east / west）、`trapezoid` |
-  | 其它 | `cylinder` / `cylinder2` / `cylinder3`、`cloud`、`document`（可选 **`size`** 褶高比例，默认 `0.3`；**标签锚点在折痕上方区域中心**）、`dataStorage`（可选 **`size`** 左侧弧；`fixedSize=1` 时为像素）、`internalStorage`（`dx`/`dy`，**`rounded=1`** 时 **`arcSize`**） |
+### 边（节选）
 
-### 边
+| 类别 | 已覆盖（示例） |
+|------|----------------|
+| 几何 | `sourcePoint` → 路点 → `targetPoint`；无点则连两端中心 |
+| 路由 | **`curved`**（二次贝塞尔）、**`rounded`** 正交圆角、**`jumpStyle=arc`**（与 **`jumpSize`**、**`noJump`** 等配合）；优先级：**跳线 > 曲线 > 圆角 > 折线** |
+| 端点 **`spacing`** | 无显式端点、回退为中心连线时，沿形状周界穿出再内收；**凸多边形**与 **`cloud` / `cylinder` / `document` / `dataStorage`** 等曲线轮廓已接周界近似（旋转几何下与 **`shape-path`** 一致） |
+| 箭头 | **`endArrow` / `startArrow`** 多种、`endSize` / `startSize` |
+| 样式 | 与顶点类似的描边/虚线/透明度；**`noLabel`**、标签 **`align` / `verticalAlign`**、**`labelPadding`**、**`labelBackgroundColor`**、**`overflow=hidden`** 等 |
 
-- **几何**：`sourcePoint` → **`Array`** 路点 → `targetPoint`；若无点仅有 **`source` + `target`**，则连两顶点中心。
-- **路由**（优先级：**跳线 > 曲线 > 圆角 > 折线**）
-  - **`curved=1`**：二次贝塞尔（`<path d="M…Q…">`）；标签与边界按曲线密化近似。
-  - **`rounded=1`** 且路点 ≥ **3**：正交拐角 **`L` + `Q`**（可用 **`arcSize`** 覆盖默认弧）。
-  - **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边**折线路点**求交处画跨越弧；**`noJump=1`** 不参与；**`curved=1`** 或 **`noJump=1`** 不画跳线。
-- **样式**：**`dashed`** / **`dash=1`**、**`dashPattern`**、**`fixDash`**（同顶点）；**`linecap` / `linejoin`**（折线/曲线；未设时 **`round`/`round`**，与常见连接器一致）；**`miterLimit` / `strokeMiterlimit`**（同顶点）；**`strokeColor=none`** 或 **`strokeWidth=0`**：几何为 **`stroke="none"`**，且不输出 **marker**；**`endSize` / `startSize`**（键小写）：箭头 marker相对默认 **6** 的比例缩放（约 **0.35～5**），**`id`** 在比例非 **1** 时带后缀以区分；**`noLabel`**、**`letterSpacing`**、**`lineHeight`**（同顶点，作用于边标签）；**`overflow=hidden`** / **`clip`**：边标签块外包 **`<g clip-path="url(#…)">`**，裁剪框按标签几何与 **`labelBackgroundColor`** 衬底（若有）计算；**`link`**（同顶点）：边标签外包 **`<a>`**；**`mxCell`** 的 **`tooltip`**（同顶点）→ **`<title>`**；**`opacity`**（整条边 `<g>`，含箭头与标签）；**`strokeOpacity`**（折线/曲线描边；键 **`strokeopacity`**）；**`fillOpacity`**（若有边标签衬底矩形）；**`labelBorderColor` / `labelBorderWidth`**（边标签衬底描边，同顶点）；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；marker 与 **`strokeColor`** 一致；未设 **`startArrow`** 则起点无箭头；**`fontSize` / `fontColor` / `fontStyle` / `fontFamily`** 作用于边标签。
-- **`spacing`**（**边**样式）：仅在**无**显式 `sourcePoint`/`targetPoint`、解析回退为**中心连线**时生效：穿出形状周界后再内收 **`spacing`**。**`ellipse`**（含旋转）用局部椭圆求交；**`rhombus` / `hexagon` / … / `pentagon`** 与 **`shape-path`** 一致的凸多边形（支持旋转）；**`cloud` / `cylinder` / `document` / `dataStorage`** 用与 **`shape-path`** 相同的曲线密化折线求交（支持旋转）；**`rect` / `internalStorage`** 等用轴对齐框；旋转矩形在局部未旋转系。（**顶点**上的 **`spacing`** 见上文「标签区内边距」，与边端点 **`spacing`** 语义不同。）
-- **边标签锚点**：默认路径**中点**；**`mxPoint as="label"`** 且 **`x` ∈ [0,1]** 为弧长比例 + 法向 **`y`**；**`relative=1`** 且带 **`x`/`y`** 为相对中点平移。
-- **边标签折行**：**`whiteSpace=wrap`** 时以 **`mxGeometry` 的 `width`（>0）** 为最大行宽；否则用与字号相关的默认宽。
-- **`labelPadding`**：沿路径法向叠加（与比例 label 的 **`y`**、**`relative`** 中点偏移同向）；**绝对 label 坐标**（**`x` ∉ [0,1]**）不做法向叠加。
-- **`labelBackgroundColor`**：圆角衬底；有衬底时不再加白色描边晕圈。可选 **`labelBorderColor`**、**`labelBorderWidth`** 为衬底加描边。
-- **`align` / `verticalAlign`**（style 解析为小写键 **`align`**、**`verticalalign`**）：相对路径锚点布置标签内容盒。水平 **`left` / `center` / `right`**（默认 **`center`**）；垂直 **`top` / `middle` / `bottom`**（默认 **`middle`**）。无衬底时平移文字块中心；有衬底时平移圆角矩形，文字仍在衬底内居中。多行时水平对齐还映射为 SVG **`text-anchor`**（`start` / `middle` / `end`），各行相对块中心左齐、居中或右齐。
+### 文本
 
-### 标签与文本
+| 项 | 说明 |
+|----|------|
+| 纯文本 | **`value`** 经 **`mxLabelToPlainText`** 降为纯文本；**`whiteSpace=wrap`** 用 Pretext + 与测量一致的字体栈 |
+| 多行 | **`</p>` / `</div>` / `<br>` / 换行** 等 → 多 **`tspan`**；垂直居中用 Canvas **`measureText`** 对齐墨迹中心（与单行 **`dominant-baseline="middle"`** 视觉一致） |
 
-- **`value`** 中 HTML 经 **`mxLabelToPlainText`** 降为纯文本（行内空白折叠）。
-- **显式多行**：`</p>`、`</div>`、`</tr>`、`<br>`、源码换行等 →多行 **`tspan`**。各行 **`y`** 为 **alphabetic baseline**；若仅把「基线梯」的中点对准 **`cy`**，相对单行 **`dominant-baseline="middle"`**（em 中点）会整体**偏上**。实现上用与 Pretext 相同的 **Canvas `measureText`**（**`@napi-rs/canvas`**）取 ascent/descent，把整段墨迹的垂直中心对齐到 **`cy`**（顶点与边标签共用 **`renderSvgLabelBlock`**）。
-- **顶点 `whiteSpace=wrap`**：框内软折行；测量与 SVG 使用同一 **`fontFamily`**（未设时为 **`Arial, Helvetica, sans-serif`**）、**`fontStyle`** 位（**`1`** 粗、**`2`** 斜、**`4`** 下划线，可相加）、**`lineHeight`** 与 **`letterSpacing`**（见顶点样式节选）。
-- **`fontOpacity`**（顶点/边 style）：作用于 **`value` 渲染的 `<text>`**，与图元 **`opacity`** 相乘。
+## 能力边界
 
-## 局限与路线图
+本库刻意保持 **依赖少、IR 清晰、单测友好**。相对 **draw.io / diagrams.net 里常见、但 mxGraph XML 也可能出现的**能力，当前缺口大致如下（细化排期见「路线图」）：
 
-### 已知局限
+| 维度 | 现状 |
+|------|------|
+| 自定义 / stencil 形状 | 仅内置枚举；无通用 stencil 加载 |
+| 标签 | 纯文本 + 折行；无 XHTML 富文本 |
+| 泳道、表格 | 未覆盖 |
+| 图片、`UserObject` | 未覆盖 |
+| 边与周界 | 中心连线 + **`spacing`** 周界（形状集合持续补全） |
 
-- **`fontStyle` / `fontFamily`** 已映射到 SVG 与测量，与编辑器完全一致仍受系统字体影响。
-- 标签为**纯文本**，无 HTML 内联富文本。
-- **`jumpStyle`** 目前仅 **`arc`**。
-- **泳道、表格、`UserObject`、嵌入图片、大量 stencil** 等未完整覆盖。
+## 路线图
 
-### 进度与排期取向
+### 近期（增量，优先可测）
 
-当前能力已能覆盖大量**流程图与简单架构图**；若要逼近 draw.io 全量文档，中长期缺口主要在 **泳道 / 表格 / 富文本 / stencil**，而非基础折线与形状。
+- 边标签在 **曲线 / 多行 / 极端 `align`** 组合下的位置与基线微调，补回归用例。
+- **`jumpStyle`**：调研 **`arc` 以外**（如 line 等）在 mxGraph 中的几何定义，评估与当前折线路由的接法。
+- **箭头**：补齐常用 **`startArrow` / `endArrow`** 变体及与线宽、marker 尺寸的一致性。
+- **周界与 `spacing`**：对仍用轴对齐近似的形状做清单化排查；旋转矩形 / 椭圆边角用例加固。
 
-| 档位 | 含义 | 示例 |
-|------|------|------|
-| 小 | 管线内增量 | 箭头变体；**`spacing`** 与复杂形状周界精细化 |
-| 中 | 多处联动 | 其它 **`jumpStyle`**；更多 **`shape`**；分组与绘制顺序 |
-| 大 | 子项目级 | 泳道；表格；**`foreignObject`**；**`image`**；大范围 stencil |
+### 中期（跨模块）
 
-**分阶段（非承诺）**
+- **`parent` 层级与绘制顺序**（分组、遮挡关系与 draw.io 更一致）。
+- 更多内置 **`shape`**（按业务优先级列清单，避免一次性对齐全库 stencil）。
+- **`RenderOptions`**：主题色 / 默认字号栈等（不破坏现有 API）。
 
-- **近期**：曲线轮廓（云、文档等）的 **`spacing`** 更准周界（**`cloud` / `cylinder` / `document` / `dataStorage`** 已接轮廓折线；其它 stencil 仍可能近似）；边标签其它细项（多行相对锚点的基线微调等）。
-- **中期**：**`jumpStyle`** / **`shape`** / 箭头扩展；**`parent`** 层级；垂直度量与多行基线。
-- **长期**：泳道、表格、`UserObject`；富文本与图片；**`RenderOptions`** 主题化。
+### 长期（子项目级）
 
-若业务只关心某一类图，建议**收窄 stencil 范围**再排期，避免一次性做满全库。
+- **富文本**：XHTML 子集或 **`foreignObject`**（需安全与一致性策略）。
+- **`image` / `UserObject`** 与嵌入资源策略。
+- **泳道、表格** 的可渲染子集。
+- **Stencil**：受控加载（限定 group / 缓存），或「导出时展开为 path」的离线方案。
+
+若业务只关心某一类图，建议**先收窄形状与样式集合**再排期，避免与 draw.io 全量文档一次性对标。
+
+## 已知局限
+
+- 系统字体与编辑器 **像素级一致** 不保证；已用 Canvas 尽量对齐测宽测高。
+- 标签无 HTML 富文本；复杂样式以 draw.io 为准时需降低预期或自行扩展渲染。
+- **`jumpStyle`** 当前仅 **`arc`**；更多样式见路线图。
