@@ -1,3 +1,5 @@
 node_modules/
 # 单测 CLI 写入的示例 SVG，仅本地目视
 .test-output/
+# 本地用 .example/*.drawio 试转时的输出
+.example/

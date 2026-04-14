@@ -57,7 +57,7 @@ export function renderVertex(
   const fillOp = fillOpacityAttr(n.style);
   const strokeOp = strokeOpacityAttr(n.style);
   const paint2d = `${fillOp}${strokeOp}`;
-  const parts: string[] = [];
+  const shapeParts: string[] = [];
   const miterAttr = strokeMiterlimitAttr(n.style);
   const isDouble = mxStyleDoubleEnabled(n.style) && !strokeNone;
 
@@ -68,9 +68,9 @@ export function renderVertex(
 
   if (pathD) {
     if (strokeNone) {
-      parts.push(`<path d="${pathD}" fill="${fill}"${fillOp} stroke="none"/>`);
+      shapeParts.push(`<path d="${pathD}" fill="${fill}"${fillOp} stroke="none"/>`);
     } else {
-      parts.push(
+      shapeParts.push(
         `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${pathCapJoin}${dashAttr}${paint2d}${miterAttr}/>`,
       );
     }
@@ -85,26 +85,26 @@ export function renderVertex(
     const dy = Math.max(inset, Math.min(n.height, Number(n.style.get("dy")) || 15));
     const rx = rounded ? Math.min(n.width * arcFrac, n.height * arcFrac) : 0;
     if (strokeNone) {
-      parts.push(
+      shapeParts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
       );
-      parts.push(
+      shapeParts.push(
         `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="none"${lineCap}/>`,
       );
-      parts.push(
+      shapeParts.push(
         `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="none"${lineCap}/>`,
       );
     } else {
-      parts.push(
+      shapeParts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
       );
       const lineStroke = esc(stroke);
-      parts.push(
+      shapeParts.push(
         `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
       );
-      parts.push(
+      shapeParts.push(
         `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
       );
     }
@@ -118,23 +118,23 @@ export function renderVertex(
       const inset = Math.max(2, sw);
       const irx = Math.max(0, rx - inset);
       const iry = Math.max(0, ry - inset);
-      parts.push(
+      shapeParts.push(
         `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="none"${fillOp}/>`,
       );
-      parts.push(
+      shapeParts.push(
         `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${esc(stroke)}" stroke-width="${sw}"${strokeOnlyExtras}/>`,
       );
       if (irx > 0 && iry > 0) {
-        parts.push(
+        shapeParts.push(
           `<ellipse cx="${cx}" cy="${cy}" rx="${irx}" ry="${iry}" fill="none" stroke="${esc(stroke)}" stroke-width="${sw}"${strokeOnlyExtras}/>`,
         );
       }
     } else if (strokeNone) {
-      parts.push(
+      shapeParts.push(
         `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"${fillOp} stroke="none"/>`,
       );
     } else {
-      parts.push(
+      shapeParts.push(
         `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
       );
     }
@@ -146,33 +146,36 @@ export function renderVertex(
       const rxIn = Math.max(0, rx > 0 ? rx - inset : 0);
       const iw = Math.max(0, n.width - 2 * inset);
       const ih = Math.max(0, n.height - 2 * inset);
-      parts.push(
+      shapeParts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="none"${fillOp}/>`,
       );
-      parts.push(
+      shapeParts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="none" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${strokeOnlyExtras}/>`,
       );
       if (iw > 0 && ih > 0) {
-        parts.push(
+        shapeParts.push(
           `<rect x="${n.x + inset}" y="${n.y + inset}" width="${iw}" height="${ih}" fill="none" stroke="${esc(
             stroke,
           )}" stroke-width="${sw}" rx="${rxIn}" ry="${rxIn}"${strokeOnlyExtras}/>`,
         );
       }
     } else if (strokeNone) {
-      parts.push(
+      shapeParts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
       );
     } else {
-      parts.push(
+      shapeParts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
       );
     }
   }
+
+  const shapeInner = shapeParts.join("");
+  let labelBlock = "";
 
   if (n.label.trim() && !mxStyleNoLabel(n.style)) {
     const pad = vertexLabelPaddingFromStyle(n.style);
@@ -230,7 +233,7 @@ export function renderVertex(
         contentWidth: tw,
       }),
     );
-    let labelBlock = labelPieces.join("");
+    labelBlock = labelPieces.join("");
     const href = mxStyleLinkHref(n.style);
     if (href) labelBlock = wrapSvgHyperlink(labelBlock, href);
     if (mxStyleOverflowHidden(n.style)) {
@@ -239,10 +242,8 @@ export function renderVertex(
       const clipId = allocRectClipPath(g, rect.left, rect.top, cw, ch);
       labelBlock = `<g clip-path="url(#${clipId})">${labelBlock}</g>`;
     }
-    parts.push(labelBlock);
   }
 
-  const inner = parts.join("");
   const gOp = groupOpacityAttr(n.style);
   const filt = mxStyleShadowEnabled(n.style) ? ` filter="url(#${dropShadowFilterId()})"` : "";
   const rcx = n.x + n.width / 2;
@@ -251,15 +252,27 @@ export function renderVertex(
   const fv = mxStyleFlipV(n.style) ? -1 : 1;
   const needFlip = fh !== 1 || fv !== 1;
   const needRot = n.rotation !== 0;
-  let innerWrapped = inner;
-  if (needRot && !needFlip) {
-    innerWrapped = `<g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${inner}</g>`;
-  } else if (needFlip) {
+
+  /** draw.io：flip作用于形状笔画，标签保持可读（不随 scale镜像）。 */
+  let shapeOut = shapeInner;
+  if (needFlip) {
     const tr: string[] = [`translate(${rcx}, ${rcy})`];
     if (needRot) tr.push(`rotate(${n.rotation})`);
     tr.push(`scale(${fh}, ${fv})`);
     tr.push(`translate(${-rcx}, ${-rcy})`);
-    innerWrapped = `<g transform="${tr.join(" ")}">${inner}</g>`;
+    shapeOut = `<g transform="${tr.join(" ")}">${shapeInner}</g>`;
+  }
+
+  let labelOut = labelBlock;
+  if (labelBlock && needFlip && needRot) {
+    labelOut = `<g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${labelBlock}</g>`;
+  }
+
+  let innerWrapped: string;
+  if (!needFlip && needRot) {
+    innerWrapped = `<g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${shapeOut}${labelOut}</g>`;
+  } else {
+    innerWrapped = shapeOut + labelOut;
   }
   const titleEl = n.tooltip?.trim() ? `<title>${esc(n.tooltip.trim())}</title>` : "";
   return `<g data-mx2svg-id="${esc(n.id)}"${gOp}${filt}>${titleEl}${innerWrapped}</g>`;

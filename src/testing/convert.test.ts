@@ -963,6 +963,14 @@ describe("convert", () => {
     expect(inner).toMatch(/translate\(160, 110\)\s+scale\(-1, 1\)\s+translate\(-160, -110\)/);
   });
 
+  test("vertex flipH=1 renders label after flip group (text not mirror-transformed)", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipH=1;");
+    const svg = convert(xml);
+    expect(svg).toMatch(
+      /scale\(-1,\s*1\)[^>]*>[\s\S]*?<\/g>\s*<text[\s\S]*?>[\s\S]*?Hello/,
+    );
+  });
+
   test("vertex flipH with rotation combines translate rotate scale", () => {
     const xml = minimalMxfile
       .replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipH=1;")
