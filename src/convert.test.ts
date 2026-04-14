@@ -190,6 +190,29 @@ describe("convert", () => {
     expect(svg).toContain('d="M 0 0 L 0 40 Q 0 50 10 50 L 100 50"');
   });
 
+  test("jumpStyle=arc inserts cubic arc at edge crossing", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="h" edge="1" parent="1" style="jumpStyle=arc;jumpSize=6;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="50" as="sourcePoint"/>
+      <mxPoint x="100" y="50" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+  <mxCell id="v" edge="1" parent="1" style="strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="50" y="0" as="sourcePoint"/>
+      <mxPoint x="50" y="100" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const hGroup = svg.match(/data-mx2svg-edge="h"[^>]*>[\s\S]*?<\/g>/);
+    expect(hGroup).not.toBeNull();
+    expect(hGroup![0]).toContain(" C ");
+  });
+
   test("curved=1 renders path with Q commands", () => {
     const xml = `<?xml version="1.0"?>
 <mxfile><diagram id="p1" name="P"><mxGraphModel><root>

@@ -1,12 +1,21 @@
-import { buildCurvedEdgePathD, isCurvedEdgeStyle } from "./edge-curve.ts";
+import { buildCurvedEdgePathD, curvedEdgeToPolylineApprox, isCurvedEdgeStyle } from "./edge-curve.ts";
+import {
+  buildJumpPathDAndPolyline,
+  collectJumpMap,
+  type EdgeWaypointRef,
+} from "./edge-jump.ts";
 import {
   buildRoundedOrthogonalPathD,
   edgePolylineForLengthAndBounds,
   edgeRoundedArcSizeFromStyle,
+  roundedOrthogonalToPolylineApprox,
   useRoundedOrthogonalPath,
 } from "./edge-rounded.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
-import { polylinePointAtLengthFraction } from "./polyline.ts";
+import {
+  polylinePointAtLengthFraction,
+  polylinePointWithPerpendicularOffset,
+} from "./polyline.ts";
 import { shapePathD } from "./shape-path.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
 
@@ -145,7 +154,69 @@ function bumpRotatedRect(
   }
 }
 
-function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
+interface EdgeLineMetrics {
+  metricsPolyline: { x: number; y: number }[];
+  pathD: string | null;
+  polylinePoints: { x: number; y: number }[] | null;
+}
+
+function computeEdgeLineMetrics(edges: DiagramEdge[]): Map<string, EdgeLineMetrics> {
+  const waypoints: EdgeWaypointRef[] = edges.map((e) => ({
+    id: e.id,
+    points: e.points,
+    style: e.style,
+  }));
+  const out = new Map<string, EdgeLineMetrics>();
+
+  for (const e of edges) {
+    const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
+    const ref: EdgeWaypointRef = { id: e.id, points: e.points, style: e.style };
+    const jumpMap = collectJumpMap(e.points, ref, waypoints);
+    const jump = buildJumpPathDAndPolyline(e.points, jumpMap, e.style, sw);
+
+    if (jump) {
+      out.set(e.id, {
+        metricsPolyline: jump.polyline,
+        pathD: jump.d,
+        polylinePoints: null,
+      });
+      continue;
+    }
+
+    if (isCurvedEdgeStyle(e.style)) {
+      out.set(e.id, {
+        metricsPolyline: curvedEdgeToPolylineApprox(e.points),
+        pathD: buildCurvedEdgePathD(e.points),
+        polylinePoints: null,
+      });
+      continue;
+    }
+
+    if (useRoundedOrthogonalPath(e.style, e.points.length)) {
+      const arc = edgeRoundedArcSizeFromStyle(e.style);
+      out.set(e.id, {
+        metricsPolyline: roundedOrthogonalToPolylineApprox(e.points, arc),
+        pathD: buildRoundedOrthogonalPathD(e.points, arc),
+        polylinePoints: null,
+      });
+      continue;
+    }
+
+    const metricsPolyline = edgePolylineForLengthAndBounds(e.points, e.style);
+    out.set(e.id, {
+      metricsPolyline,
+      pathD: null,
+      polylinePoints: e.points,
+    });
+  }
+
+  return out;
+}
+
+function bounds(
+  page: { nodes: DiagramNode[]; edges: DiagramEdge[] },
+  edgeMetrics: Map<string, EdgeLineMetrics>,
+): {
   minX: number;
   minY: number;
   maxX: number;
@@ -167,7 +238,8 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
     bumpRotatedRect(bump, n.x, n.y, n.width, n.height, n.rotation);
   }
   for (const e of page.edges) {
-    const pts = edgePolylineForLengthAndBounds(e.points, e.style);
+    const m = edgeMetrics.get(e.id);
+    const pts = m?.metricsPolyline ?? e.points;
     for (const p of pts) {
       bump(p.x, p.y);
     }
@@ -177,6 +249,27 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
     return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
   }
   return { minX, minY, maxX, maxY };
+}
+
+function edgeLabelAnchor(e: DiagramEdge, metrics: { x: number; y: number }[]): { x: number; y: number } {
+  if (metrics.length < 2) {
+    return metrics[0] ?? { x: 0, y: 0 };
+  }
+  if (e.edgeLabelPath) {
+    return polylinePointWithPerpendicularOffset(
+      metrics,
+      e.edgeLabelPath.fraction,
+      e.edgeLabelPath.normalOffset,
+    );
+  }
+  if (e.edgeLabelMidOffset) {
+    const mid = polylinePointAtLengthFraction(metrics, 0.5);
+    return { x: mid.x + e.edgeLabelMidOffset.dx, y: mid.y + e.edgeLabelMidOffset.dy };
+  }
+  if (e.labelPosition) {
+    return e.labelPosition;
+  }
+  return polylinePointAtLengthFraction(metrics, 0.5);
 }
 
 interface LabelBlockOpts {
@@ -231,38 +324,30 @@ function wantsArrowStart(style: Map<string, string>): boolean {
   return l !== "none" && l !== "" && l !== "open" && l !== "oval" && l !== "diamond";
 }
 
-function renderEdge(e: DiagramEdge): string {
+function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
-  const curved = isCurvedEdgeStyle(e.style);
-  const roundedPath = useRoundedOrthogonalPath(e.style, e.points.length);
   const dashAttr = strokeDashAttr(e.style);
   const arrowEnd = wantsArrowEnd(e.style);
   const arrowStart = wantsArrowStart(e.style);
   const markerEnd = arrowEnd ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
   const markerStart = arrowStart ? ' marker-start="url(#mx2svg-arrow-start)"' : "";
 
-  const pathD = curved
-    ? buildCurvedEdgePathD(e.points)
-    : roundedPath
-      ? buildRoundedOrthogonalPathD(e.points, edgeRoundedArcSizeFromStyle(e.style))
-      : null;
-
+  const pathD = m.pathD;
   const lineEl =
     pathD != null
       ? `<path d="${esc(pathD)}" fill="none" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`
-      : `<polyline points="${e.points.map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
+      : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`;
 
   const parts: string[] = [lineEl];
 
   if (e.label.trim()) {
-    const lengthPts = edgePolylineForLengthAndBounds(e.points, e.style);
-    const anchor = e.labelPosition ?? polylinePointAtLengthFraction(lengthPts, 0.5);
+    const anchor = edgeLabelAnchor(e, m.metricsPolyline);
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
     parts.push(
       renderSvgLabelBlock(anchor.x, anchor.y, fs, e.label, { contrastStroke: true, fill: labelFill }),
@@ -357,14 +442,15 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
     throw new Error(`mx2svg: pageIndex ${pageIndex} out of range (${doc.pages.length} pages)`);
   }
 
-  const { minX, minY, maxX, maxY } = bounds(page);
+  const edgeMetrics = computeEdgeLineMetrics(page.edges);
+  const { minX, minY, maxX, maxY } = bounds(page, edgeMetrics);
   const vbX = minX - pad;
   const vbY = minY - pad;
   const vbW = maxX - minX + pad * 2;
   const vbH = maxY - minY + pad * 2;
 
   const gctx: GradientBuildContext = { fragments: [], nextId: 0 };
-  const edgeLayer = page.edges.map((e) => renderEdge(e)).join("\n");
+  const edgeLayer = page.edges.map((e) => renderEdge(e, edgeMetrics.get(e.id)!)).join("\n");
   const nodeLayer = page.nodes.map((n) => renderNode(n, gctx)).join("\n");
 
   const gradientBlock =

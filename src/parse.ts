@@ -1,8 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { decompressDiagramInner } from "./decompress.ts";
 import { mxLabelToPlainText } from "./mx-label-plain.ts";
-import { polylinePointAtLengthFraction, polylinePointWithPerpendicularOffset } from "./polyline.ts";
-import { edgePolylineForLengthAndBounds } from "./edge-rounded.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 
@@ -118,32 +116,34 @@ function mxPointByAs(
   return null;
 }
 
-/** draw.io：mxPoint as="label" 时 x 在 [0,1] 表示沿路径比例，y 为法向像素偏移；relative=1 时 geometry 的 x/y 为相对折线中点的偏移。 */
-function resolveEdgeLabelPosition(
-  geo: Record<string, unknown> | undefined,
-  points: { x: number; y: number }[],
-): { x: number; y: number } | undefined {
-  if (!geo || points.length < 2) return undefined;
+/** 边标签几何：比例/中点偏移在渲染阶段用最终路径（含跳线）计算。 */
+function parseEdgeLabelFields(geo: Record<string, unknown> | undefined): Pick<
+  DiagramEdge,
+  "labelPosition" | "edgeLabelPath" | "edgeLabelMidOffset"
+> {
+  const out: Pick<DiagramEdge, "labelPosition" | "edgeLabelPath" | "edgeLabelMidOffset"> = {};
+  if (!geo) return out;
 
   const labelMx = mxPointByAs(geo, "label");
   if (labelMx && (labelMx.x !== 0 || labelMx.y !== 0)) {
     const { x: lx, y: ly } = labelMx;
     if (lx >= 0 && lx <= 1) {
-      return polylinePointWithPerpendicularOffset(points, lx, ly);
+      out.edgeLabelPath = { fraction: lx, normalOffset: ly };
+    } else {
+      out.labelPosition = { x: lx, y: ly };
     }
-    return { x: lx, y: ly };
+    return out;
   }
 
   if (strAttr(geo, "relative") === "1") {
     const ox = numAttr(geo, "x", 0);
     const oy = numAttr(geo, "y", 0);
     if (ox !== 0 || oy !== 0) {
-      const mid = polylinePointAtLengthFraction(points, 0.5);
-      return { x: mid.x + ox, y: mid.y + oy };
+      out.edgeLabelMidOffset = { dx: ox, dy: oy };
     }
   }
 
-  return undefined;
+  return out;
 }
 
 function parseGraphModelObject(modelObj: Record<string, unknown>): {
@@ -222,15 +222,14 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const style = parseMxStyle(styleStr);
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
-    const labelPathPts = edgePolylineForLengthAndBounds(pts, style);
-    const labelPosition = resolveEdgeLabelPosition(geoObj, labelPathPts);
+    const labelFields = parseEdgeLabelFields(geoObj);
 
     edges.push({
       id,
       parentId: parent,
       points: pts,
       label: mxLabelToPlainText(value),
-      ...(labelPosition ? { labelPosition } : {}),
+      ...labelFields,
       style,
       ...(source ? { source } : {}),
       ...(target ? { target } : {}),

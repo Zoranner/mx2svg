@@ -37,8 +37,12 @@ export interface DiagramEdge {
   parentId: string | null;
   points: { x: number; y: number }[];
   label: string;
-  /** 边标签锚点（页面坐标）；缺省为折线几何中点。 */
+  /** 边标签锚点（页面绝对坐标），来自 `mxPoint as="label"` 且 x 不在 [0,1]。 */
   labelPosition?: { x: number; y: number };
+  /** `mxPoint as="label"` 且 x 在 [0,1]：沿最终渲染路径的弧长比例与法向偏移（像素）。 */
+  edgeLabelPath?: { fraction: number; normalOffset: number };
+  /** `relative=1` 且 geometry 带 x/y：相对路径几何中点的偏移。 */
+  edgeLabelMidOffset?: { dx: number; dy: number };
   style: Map<string, string>;
   source?: string;
   target?: string;
