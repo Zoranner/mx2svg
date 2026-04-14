@@ -12,7 +12,7 @@ bun test
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
 - **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`、`font-stack-stdout.svg`）
-- **`convert/`**：**`convert-output.test.ts`** 写入的 **20+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**（含 **菱形端点**）、**`labelPadding`**、边标签比例、双开箭头等），便于逐项打开对照
+- **`convert/`**：**`convert-output.test.ts`** 写入的 **21+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**（含 **菱形端点**、**旋转椭圆端点**）、**`labelPadding`**、边标签比例、双开箭头等），便于逐项打开对照
 
 ### 程序化集成（开发中直接使用）
 
@@ -94,7 +94,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
   - **`rounded=1`**且路点 ≥ **3**：正交折线拐角 **`L` + `Q`**（默认贴近 `LINE_ARCSIZE`，可用 **`arcSize`** 覆盖）。
   - **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边**路点折线**求交处画跨越弧（`C`）；**`noJump=1`** 不参与检测；**`curved=1`** 或 **`noJump=1`** 不画跳线。
 - **样式**：`dashed`；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；箭头 **marker 颜色与 `strokeColor` 一致**；未设 `startArrow` 时起点无箭头；**`fontSize` / `fontColor` / `fontStyle` / `fontFamily`** 作用于边标签（与顶点相同语义）。
-- **`spacing`**：仅当边 **没有** 显式 `sourcePoint`/`targetPoint`（解析回退为 **源/目标中心连线**）时生效：沿连线穿出形状周界后，两端再各内收 `spacing` 像素。**`ellipse`**（无旋转）：椭圆；**`rhombus` / `hexagon` / `parallelogram` / `triangle` / `trapezoid` / `pentagon`**：与 `shape-path` 一致的 **凸多边形** 边求交（支持 **旋转**，顶点经与渲染相同的 `rotate` 变换）；**`rect` / `internalStorage` 等**：轴对齐框；**旋转矩形**：局部未旋转坐标系内矩形；**旋转椭圆**、**`cylinder` / `cloud` / `document` / `dataStorage`** 等曲线轮廓仍用 **外接轴对齐框** 近似。
+- **`spacing`**：仅当边 **没有** 显式 `sourcePoint`/`targetPoint`（解析回退为 **源/目标中心连线**）时生效：沿连线穿出形状周界后，两端再各内收 `spacing` 像素。**`ellipse`**（含 **旋转**）：在局部中心坐标系下按轴对齐椭圆求交，与渲染的 `rotate` 一致；**`rhombus` / `hexagon` / `parallelogram` / `triangle` / `trapezoid` / `pentagon`**：与 `shape-path` 一致的 **凸多边形** 边求交（支持 **旋转**）；**`rect` / `internalStorage` 等**：轴对齐框；**旋转矩形**：局部未旋转坐标系内矩形；**`cylinder` / `cloud` / `document` / `dataStorage`** 等曲线轮廓仍用 **外接轴对齐框** 近似。
 - **边标签锚点**：默认路径**总长中点**；**`mxPoint as="label"`** 且 **`x` 在 [0,1]** 时为弧长比例与法向 **`y`** 偏移；**`relative=1`** 且 geometry 带 **`x`/`y`** 时为相对中点的平移。
 - **边标签折行**：**`whiteSpace=wrap`** 时，以 **`mxGeometry` 的 `width`（>0）** 为最大行宽（Pretext）；无 `width` 时使用与字号相关的默认行宽。
 - **边标签与路径间距**：**`labelPadding`**（像素）叠加在锚点法向偏移上（与 **`mxPoint as="label"`** 的 `y` 分量、`relative` 中点几何同向）；**绝对 `label` 坐标**（`x` 不在 [0,1]）不参与法向叠加。
@@ -129,7 +129,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 ### 分阶段计划
 
-- **近期（高性价比）**：**旋转椭圆** 与 **曲线轮廓** 的 `spacing` 周界；边标签 **`align`** 等细项。
+- **近期（高性价比）**：**曲线轮廓**（云、文档等）的 `spacing` 真实周界或更准近似；边标签 **`align`** 等细项。
 - **中期**：扩展 **`jumpStyle`**、**`shape`** 与箭头；**`parent`** 层级与遮挡；**垂直度量**与多行基线。
 - **长期**：泳道、表格、`UserObject`；富文本与图片单元；**`RenderOptions`** 主题与字体栈。
 

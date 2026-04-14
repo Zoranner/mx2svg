@@ -52,6 +52,21 @@ describe("adjustCenterConnectorEndpoints", () => {
     expect(Math.abs(pRhom![0].x - pRect![0].x)).toBeGreaterThan(0.5);
   });
 
+  test("rotated ellipse perimeter differs from axis-aligned ellipse", () => {
+    const b = node({ id: "b", x: 300, y: 80, width: 80, height: 80 });
+    const cA = { x: 160, y: 110 };
+    const cB = { x: 340, y: 120 };
+    const flat = node({ id: "a", x: 100, y: 80, width: 120, height: 60, shape: "ellipse", rotation: 0 });
+    const tilt = node({ id: "a", x: 100, y: 80, width: 120, height: 60, shape: "ellipse", rotation: 45 });
+    const pFlat = adjustCenterConnectorEndpoints(cA, cB, flat, b, 10);
+    const pTilt = adjustCenterConnectorEndpoints(cA, cB, tilt, b, 10);
+    expect(pFlat).not.toBeNull();
+    expect(pTilt).not.toBeNull();
+    const d =
+      Math.abs(pFlat![0].x - pTilt![0].x) + Math.abs(pFlat![0].y - pTilt![0].y);
+    expect(d).toBeGreaterThan(1);
+  });
+
   test("rotated rect perimeter differs from rotation=0", () => {
     const b = node({ id: "b", x: 300, y: 80, width: 80, height: 80 });
     const cA = { x: 160, y: 110 };

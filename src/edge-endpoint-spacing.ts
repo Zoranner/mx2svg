@@ -68,16 +68,20 @@ function worldToLocalCentered(p: { x: number; y: number }, n: DiagramNode): { x:
   return { x: dx * c - dy * s, y: dx * s + dy * c };
 }
 
-function ellipseBoundaryExitT(from: { x: number; y: number }, toward: { x: number; y: number }, n: DiagramNode): number | null {
-  const cx = n.x + n.width / 2;
-  const cy = n.y + n.height / 2;
-  const rx = n.width / 2;
-  const ry = n.height / 2;
+/**
+ * 局部中心坐标系下轴对齐椭圆 (x/rx)²+(y/ry)²=1 与弦 fromL→towardL 的交点参数 t（0 < t ≤ 1，取最先穿出）。
+ */
+function ellipseChordExitTInLocalCentered(
+  fromL: { x: number; y: number },
+  towardL: { x: number; y: number },
+  rx: number,
+  ry: number,
+): number | null {
   if (rx < 1e-9 || ry < 1e-9) return null;
-  const dx = toward.x - from.x;
-  const dy = toward.y - from.y;
-  const px = from.x - cx;
-  const py = from.y - cy;
+  const dx = towardL.x - fromL.x;
+  const dy = towardL.y - fromL.y;
+  const px = fromL.x;
+  const py = fromL.y;
   const A = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
   const B = 2 * ((px * dx) / (rx * rx) + (py * dy) / (ry * ry));
   const C = (px * px) / (rx * rx) + (py * py) / (ry * ry) - 1;
@@ -94,6 +98,14 @@ function ellipseBoundaryExitT(from: { x: number; y: number }, toward: { x: numbe
     }
   }
   return best;
+}
+
+function ellipsePerimeterExitT(from: { x: number; y: number }, toward: { x: number; y: number }, n: DiagramNode): number | null {
+  const rx = n.width / 2;
+  const ry = n.height / 2;
+  const fromL = worldToLocalCentered(from, n);
+  const towardL = worldToLocalCentered(toward, n);
+  return ellipseChordExitTInLocalCentered(fromL, towardL, rx, ry);
 }
 
 /** 线段 from—toward 与线段 a—b 相交时，在 from—toward 上的参数 t（0<t≤1）。 */
@@ -135,11 +147,8 @@ function polygonBoundaryExitT(
 }
 
 function perimeterExitT(from: { x: number; y: number }, toward: { x: number; y: number }, n: DiagramNode): number | null {
-  if (n.shape === "ellipse" && n.rotation === 0) {
-    return ellipseBoundaryExitT(from, toward, n);
-  }
-  if (n.shape === "ellipse" && n.rotation !== 0) {
-    return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
+  if (n.shape === "ellipse") {
+    return ellipsePerimeterExitT(from, toward, n);
   }
 
   const poly = worldConvexPolygonOutline(n);

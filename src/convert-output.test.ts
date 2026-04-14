@@ -247,4 +247,24 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("<polyline");
     dump("20-rhombus-edge-spacing", svg);
   });
+
+  test("rotated ellipse source with edge spacing", () => {
+    const xml = minimalMxfile
+      .replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      )
+      .replace(
+        '<mxGeometry x="100" y="80" width="120" height="60" as="geometry"/>',
+        '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>',
+      )
+      .replace(
+        "endArrow=classic;strokeColor=#82b366;",
+        "endArrow=classic;strokeColor=#82b366;spacing=12;",
+      );
+    const svg = convert(xml);
+    expect(svg).toContain("<ellipse ");
+    expect(svg).toContain("<polyline");
+    dump("21-rotated-ellipse-edge-spacing", svg);
+  });
 });

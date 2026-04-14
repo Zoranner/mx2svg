@@ -174,6 +174,24 @@ describe("convert", () => {
     expect(inner).not.toContain("160,110");
   });
 
+  test("edge spacing from rotated ellipse source differs from axis-aligned ellipse polyline start", () => {
+    const base = minimalMxfile
+      .replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      )
+      .replace(
+        "endArrow=classic;strokeColor=#82b366;",
+        "endArrow=classic;strokeColor=#82b366;spacing=12;",
+      );
+    const flatGeo = '<mxGeometry x="100" y="80" width="120" height="60" as="geometry"/>';
+    const rotGeo = '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>';
+    const firstPolylinePoint = (svg: string): string =>
+      svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]?.match(/points="([^"]+)"/)?.[1]?.split(/\s+/)?.[0] ??
+      "";
+    expect(firstPolylinePoint(convert(base.replace(flatGeo, rotGeo)))).not.toBe(firstPolylinePoint(convert(base)));
+  });
+
   test("edge spacing from rhombus source differs from rect source polyline start", () => {
     const rhombusXml = minimalMxfile
       .replace(
