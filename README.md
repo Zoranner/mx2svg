@@ -42,6 +42,8 @@ const svg = convert(drawioXml, {
 
 需要改解析/渲染中间步骤时，可拆开使用 **`parseDrawioXml`**（XML → `DiagramDoc`）与 **`renderToSvg`**（`DiagramDoc` → SVG）。类型见 **`DiagramDoc`**、**`DiagramPage`** 等导出。
 
+**源码布局（`src/`）**：入口为 **`convert.ts`**、**`index.ts`**、**`cli.ts`**；**`parse.ts`** 只做顶层 XML / 多页调度；**`parse/`** 含 **`xml-parser`**、**`xml-helpers`**、**`mx-geometry`**（点列与边标签几何）、**`graph-model`**（cells → nodes/edges）、**`diagram-payload`**、**`style`**（`parseMxStyle` / `inferShape`）、**`edge-endpoints`**（中心连线 `spacing`）等；**`render.ts`** 仅再导出，实现见 **`render/`**；几何与绘制仍分布在 **`edge-*`**、**`shape-*`**、**`model.ts`** 等文件中。
+
 在 monorepo 里可把依赖写成 `"mx2svg": "workspace:*"` 或 `"file:../mx2svg"`，再同样 `import { convert } from "mx2svg"`。
 
 ### 命令行出图（可选，便于目视验证）
