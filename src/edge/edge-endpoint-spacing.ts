@@ -13,48 +13,15 @@ function unit(dx: number, dy: number): { x: number; y: number } | null {
   return { x: dx / len, y: dy / len };
 }
 
-/** 线段 from→toward（沿 toward 方向参数 t，取 (0,1] 内最先碰到矩形边）的 t；from 应在矩形内部。 */
-function rectBoundaryExitT(
-  from: { x: number; y: number },
-  toward: { x: number; y: number },
-  rx: number,
-  ry: number,
-  rw: number,
-  rh: number,
-): number | null {
-  const dx = toward.x - from.x;
-  const dy = toward.y - from.y;
-  if (Math.abs(dx) < 1e-12 && Math.abs(dy) < 1e-12) return null;
-  const x0 = rx;
-  const y0 = ry;
-  const x1 = rx + rw;
-  const y1 = ry + rh;
-  let best: number | null = null;
-
-  const tryT = (t: number) => {
-    if (t <= 1e-9 || t > 1) return;
-    const px = from.x + t * dx;
-    const py = from.y + t * dy;
-    if (px < x0 - 1e-4 || px > x1 + 1e-4 || py < y0 - 1e-4 || py > y1 + 1e-4) return;
-    const onBorder =
-      Math.abs(px - x0) < 1e-3 ||
-      Math.abs(px - x1) < 1e-3 ||
-      Math.abs(py - y0) < 1e-3 ||
-      Math.abs(py - y1) < 1e-3;
-    if (onBorder) {
-      if (best === null || t < best) best = t;
-    }
-  };
-
-  if (Math.abs(dx) > 1e-12) {
-    tryT((x0 - from.x) / dx);
-    tryT((x1 - from.x) / dx);
-  }
-  if (Math.abs(dy) > 1e-12) {
-    tryT((y0 - from.y) / dy);
-    tryT((y1 - from.y) / dy);
-  }
-  return best;
+/** 世界坐标下的方向向量 → 与 `worldToLocalCentered` 同角的逆旋转（用于射线方向）。 */
+function worldDirToLocalCentered(
+  d: { x: number; y: number },
+  n: DiagramNode,
+): { x: number; y: number } {
+  const rad = (-n.rotation * Math.PI) / 180;
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  return { x: d.x * c - d.y * s, y: d.x * s + d.y * c };
 }
 
 /** 页面坐标 → 以单元格中心为原点、逆旋转后的局部坐标（y 向下，矩形为 [-w/2,w/2]×[-h/2,h/2]）。 */
@@ -73,73 +40,66 @@ function worldToLocalCentered(
 }
 
 /**
- * 局部中心坐标系下轴对齐椭圆 (x/rx)²+(y/ry)²=1 与弦 fromL→towardL 的交点参数 t（0 < t ≤ 1，取最先穿出）。
+ * 射线 origin + t * dir（dir 为单位向量）与开线段 a—b 的首次交点距离 t>0。
  */
-function ellipseChordExitTInLocalCentered(
-  fromL: { x: number; y: number },
-  towardL: { x: number; y: number },
+function rayUnitSegmentMinT(
+  ox: number,
+  oy: number,
+  dx: number,
+  dy: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number | null {
+  const wx = bx - ax;
+  const wy = by - ay;
+  const cross = dx * wy - dy * wx;
+  if (Math.abs(cross) < 1e-12) return null;
+  const t = ((ax - ox) * wy - (ay - oy) * wx) / cross;
+  const u = ((ax - ox) * dy - (ay - oy) * dx) / cross;
+  if (t <= 1e-9 || u < -1e-8 || u > 1 + 1e-8) return null;
+  return t;
+}
+
+/** 射线与轴对齐矩形边界的首个正交距离（dir 单位向量）。 */
+function rectRayDistance(
+  from: { x: number; y: number },
+  dir: { x: number; y: number },
   rx: number,
   ry: number,
+  rw: number,
+  rh: number,
 ): number | null {
-  if (rx < 1e-9 || ry < 1e-9) return null;
-  const dx = towardL.x - fromL.x;
-  const dy = towardL.y - fromL.y;
-  const px = fromL.x;
-  const py = fromL.y;
-  const A = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
-  const B = 2 * ((px * dx) / (rx * rx) + (py * dy) / (ry * ry));
-  const C = (px * px) / (rx * rx) + (py * py) / (ry * ry) - 1;
-  if (Math.abs(A) < 1e-12) return null;
-  const disc = B * B - 4 * A * C;
-  if (disc < 0) return null;
-  const s = Math.sqrt(disc);
-  const t1 = (-B - s) / (2 * A);
-  const t2 = (-B + s) / (2 * A);
+  const x0 = rx;
+  const y0 = ry;
+  const x1 = rx + rw;
+  const y1 = ry + rh;
   let best: number | null = null;
-  for (const t of [t1, t2]) {
-    if (t > 1e-9 && t <= 1) {
-      if (best === null || t < best) best = t;
-    }
+  const tryT = (t: number) => {
+    if (!Number.isFinite(t) || t <= 1e-9) return;
+    const px = from.x + t * dir.x;
+    const py = from.y + t * dir.y;
+    const onVert =
+      (Math.abs(px - x0) < 1e-4 || Math.abs(px - x1) < 1e-4) && py >= y0 - 1e-4 && py <= y1 + 1e-4;
+    const onHorz =
+      (Math.abs(py - y0) < 1e-4 || Math.abs(py - y1) < 1e-4) && px >= x0 - 1e-4 && px <= x1 + 1e-4;
+    if ((onVert || onHorz) && (best === null || t < best)) best = t;
+  };
+  if (Math.abs(dir.x) > 1e-12) {
+    tryT((x0 - from.x) / dir.x);
+    tryT((x1 - from.x) / dir.x);
+  }
+  if (Math.abs(dir.y) > 1e-12) {
+    tryT((y0 - from.y) / dir.y);
+    tryT((y1 - from.y) / dir.y);
   }
   return best;
 }
 
-function ellipsePerimeterExitT(
+function polygonRayMinDistance(
   from: { x: number; y: number },
-  toward: { x: number; y: number },
-  n: DiagramNode,
-): number | null {
-  const rx = n.width / 2;
-  const ry = n.height / 2;
-  const fromL = worldToLocalCentered(from, n);
-  const towardL = worldToLocalCentered(toward, n);
-  return ellipseChordExitTInLocalCentered(fromL, towardL, rx, ry);
-}
-
-/** 线段 from—toward 与线段 a—b 相交时，在 from—toward 上的参数 t（0<t≤1）。 */
-function chordOpenEdgeIntersectionT(
-  from: { x: number; y: number },
-  toward: { x: number; y: number },
-  a: { x: number; y: number },
-  b: { x: number; y: number },
-): number | null {
-  const dx1 = toward.x - from.x;
-  const dy1 = toward.y - from.y;
-  const dx2 = b.x - a.x;
-  const dy2 = b.y - a.y;
-  const cross = dx1 * dy2 - dy1 * dx2;
-  if (Math.abs(cross) < 1e-12) return null;
-  const dx3 = a.x - from.x;
-  const dy3 = a.y - from.y;
-  const t = (dx3 * dy2 - dy3 * dx2) / cross;
-  const u = (dx3 * dy1 - dy3 * dx1) / cross;
-  if (t <= 1e-9 || t > 1 || u < -1e-8 || u > 1 + 1e-8) return null;
-  return t;
-}
-
-function polygonBoundaryExitT(
-  from: { x: number; y: number },
-  toward: { x: number; y: number },
+  dir: { x: number; y: number },
   verts: { x: number; y: number }[],
 ): number | null {
   if (verts.length < 3) return null;
@@ -148,10 +108,75 @@ function polygonBoundaryExitT(
   for (let i = 0; i < nv; i++) {
     const a = verts[i]!;
     const b = verts[(i + 1) % nv]!;
-    const t = chordOpenEdgeIntersectionT(from, toward, a, b);
+    const t = rayUnitSegmentMinT(from.x, from.y, dir.x, dir.y, a.x, a.y, b.x, b.y);
     if (t != null && (best === null || t < best)) best = t;
   }
   return best;
+}
+
+/** 局部中心系下椭圆 (x/rx)²+(y/ry)²=1 与射线 fromL + s*dirL（dirL 单位）的最小正根 s。 */
+function ellipseRayMinDistanceLocal(
+  fromL: { x: number; y: number },
+  dirL: { x: number; y: number },
+  rx: number,
+  ry: number,
+): number | null {
+  if (rx < 1e-9 || ry < 1e-9) return null;
+  const px = fromL.x;
+  const py = fromL.y;
+  const dx = dirL.x;
+  const dy = dirL.y;
+  const A = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+  const B = 2 * ((px * dx) / (rx * rx) + (py * dy) / (ry * ry));
+  const C = (px * px) / (rx * rx) + (py * py) / (ry * ry) - 1;
+  if (Math.abs(A) < 1e-12) {
+    if (Math.abs(B) < 1e-12) return null;
+    const s = -C / B;
+    return s > 1e-9 ? s : null;
+  }
+  const disc = B * B - 4 * A * C;
+  if (disc < 0) return null;
+  const sDisc = Math.sqrt(disc);
+  let best: number | null = null;
+  for (const s of [(-B - sDisc) / (2 * A), (-B + sDisc) / (2 * A)]) {
+    if (s > 1e-9 && (best === null || s < best)) best = s;
+  }
+  return best;
+}
+
+/**
+ * 从 `from` 沿单位方向 `dir` 发出射线，到形状周界的最短正距离（首次穿出）。
+ * 解决「比例点在形状内部」时限在 (0,1] 弦长无法到达边界的问题（云形、圆角块等）。
+ */
+export function perimeterRayDistance(
+  from: { x: number; y: number },
+  dir: { x: number; y: number },
+  n: DiagramNode,
+): number | null {
+  if (n.shape === "ellipse") {
+    const fromL = worldToLocalCentered(from, n);
+    const dirL = worldDirToLocalCentered(dir, n);
+    return ellipseRayMinDistanceLocal(fromL, dirL, n.width / 2, n.height / 2);
+  }
+
+  const poly = worldConvexPolygonOutline(n);
+  if (poly) {
+    const t = polygonRayMinDistance(from, dir, poly);
+    if (t != null) return t;
+  }
+
+  const curved = worldShapePerimeterPolyline(n);
+  if (curved && curved.length >= 3) {
+    const t = polygonRayMinDistance(from, dir, curved);
+    if (t != null) return t;
+  }
+
+  if (n.rotation !== 0) {
+    const fromL = worldToLocalCentered(from, n);
+    const dirL = worldDirToLocalCentered(dir, n);
+    return rectRayDistance(fromL, dirL, -n.width / 2, -n.height / 2, n.width, n.height);
+  }
+  return rectRayDistance(from, dir, n.x, n.y, n.width, n.height);
 }
 
 export function perimeterPointFromCenterToward(
@@ -160,38 +185,27 @@ export function perimeterPointFromCenterToward(
 ): { x: number; y: number } {
   const cx = n.x + n.width / 2;
   const cy = n.y + n.height / 2;
-  const t = perimeterExitT({ x: cx, y: cy }, toward, n);
-  if (t == null) return { x: cx, y: cy };
-  return { x: cx + t * (toward.x - cx), y: cy + t * (toward.y - cy) };
+  const u = unit(toward.x - cx, toward.y - cy);
+  if (!u) return { x: cx, y: cy };
+  const s = perimeterRayDistance({ x: cx, y: cy }, u, n);
+  if (s == null) return { x: cx, y: cy };
+  return { x: cx + s * u.x, y: cy + s * u.y };
 }
 
-function perimeterExitT(
-  from: { x: number; y: number },
-  toward: { x: number; y: number },
+/**
+ * draw.io `exitX`/`exitY`/`entryX`/`entryY`：相对单元包围盒的比例点（左上为原点）。
+ * 从形状中心朝该点方向射线，取与真实周界（椭圆/云形多段线/矩形等）的交点。
+ */
+export function shapeAnchorFromRatios(
   n: DiagramNode,
-): number | null {
-  if (n.shape === "ellipse") {
-    return ellipsePerimeterExitT(from, toward, n);
-  }
-
-  const poly = worldConvexPolygonOutline(n);
-  if (poly) {
-    const t = polygonBoundaryExitT(from, toward, poly);
-    if (t != null) return t;
-  }
-
-  const curved = worldShapePerimeterPolyline(n);
-  if (curved && curved.length >= 3) {
-    const t = polygonBoundaryExitT(from, toward, curved);
-    if (t != null) return t;
-  }
-
-  if (n.rotation !== 0) {
-    const fromL = worldToLocalCentered(from, n);
-    const towardL = worldToLocalCentered(toward, n);
-    return rectBoundaryExitT(fromL, towardL, -n.width / 2, -n.height / 2, n.width, n.height);
-  }
-  return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
+  relX: number,
+  relY: number,
+): { x: number; y: number } {
+  const toward = {
+    x: n.x + relX * n.width,
+    y: n.y + relY * n.height,
+  };
+  return perimeterPointFromCenterToward(n, toward);
 }
 
 /**
@@ -206,15 +220,15 @@ export function adjustCenterConnectorEndpoints(
 ): [{ x: number; y: number }, { x: number; y: number }] | null {
   if (!(spacing > 0) || !Number.isFinite(spacing)) return null;
 
-  const tA = perimeterExitT(cA, cB, nodeA);
-  const tB = perimeterExitT(cB, cA, nodeB);
-  if (tA == null || tB == null) return null;
-
-  const E_A = { x: cA.x + tA * (cB.x - cA.x), y: cA.y + tA * (cB.y - cA.y) };
-  const E_B = { x: cB.x + tB * (cA.x - cB.x), y: cB.y + tB * (cA.y - cB.y) };
-
   const u = unit(cB.x - cA.x, cB.y - cA.y);
   if (!u) return null;
+
+  const sA = perimeterRayDistance(cA, u, nodeA);
+  const sB = perimeterRayDistance(cB, { x: -u.x, y: -u.y }, nodeB);
+  if (sA == null || sB == null) return null;
+
+  const E_A = { x: cA.x + sA * u.x, y: cA.y + sA * u.y };
+  const E_B = { x: cB.x - sB * u.x, y: cB.y - sB * u.y };
 
   const start = { x: E_A.x + spacing * u.x, y: E_A.y + spacing * u.y };
   const end = { x: E_B.x - spacing * u.x, y: E_B.y - spacing * u.y };

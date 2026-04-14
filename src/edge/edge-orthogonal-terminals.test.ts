@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import type { DiagramNode } from "../core/model.ts";
 import { parseMxStyle } from "../parse/style.ts";
 import {
   inferOrthogonalTerminals,
   orthogonalEndpointsFromStyleOrInfer,
   parseEdgeConnectionHints,
 } from "./edge-orthogonal-terminals.ts";
-import type { DiagramNode } from "../core/model.ts";
 
 function rectNode(x: number, y: number, w: number, h: number): DiagramNode {
   return {

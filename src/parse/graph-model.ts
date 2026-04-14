@@ -8,7 +8,10 @@ import {
 import { orthogonalEndpointsFromStyleOrInfer } from "../edge/edge-orthogonal-terminals.ts";
 import { mxLabelHtmlFontSizePx, mxLabelToPlainText } from "../text/mx-label-plain.ts";
 import { applyEdgePointDirectionFromTerminals } from "./edge-direction.ts";
-import { maybeAdjustCenterConnectorPoints } from "./edge-endpoints.ts";
+import {
+  maybeAdjustCenterConnectorPoints,
+  snapEdgePointsToConnectionHints,
+} from "./edge-endpoints.ts";
 import {
   edgeArrayWaypointCount,
   edgeGeometryHasExplicitTerminals,
@@ -152,6 +155,14 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const styleStr = strAttr(cell, "style");
     const style = parseMxStyle(styleStr);
 
+    pts = snapEdgePointsToConnectionHints(pts, {
+      source,
+      target,
+      style,
+      nodeById,
+      geometryExplicitTerminals: explicitTerminals,
+    });
+
     const { pts: ptsAfterSpacing, didSpacing } = maybeAdjustCenterConnectorPoints(pts, {
       usedCenterFallback,
       source,
@@ -185,8 +196,7 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     if (usedCenterFallback && pts.length === 2 && styleIsOrthogonalEdge(style)) {
       const a = source ? nodeById.get(source) : undefined;
       const b = target ? nodeById.get(target) : undefined;
-      const trunk =
-        a && b ? inferOrthogonalZTrunk(pts[0]!, a, pts[1]!, b) : undefined;
+      const trunk = a && b ? inferOrthogonalZTrunk(pts[0]!, a, pts[1]!, b) : undefined;
       pts = orthogonalizeTwoPointPolyline(pts, trunk);
     }
     const value = strAttr(cell, "value") ?? "";

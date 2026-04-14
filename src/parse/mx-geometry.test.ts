@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  mxEdgeLabelRelativeXToArcFraction,
-  parseEdgeLabelChildGeometry,
-} from "./mx-geometry.ts";
+import { mxEdgeLabelRelativeXToArcFraction, parseEdgeLabelChildGeometry } from "./mx-geometry.ts";
 
 describe("mxEdgeLabelRelativeXToArcFraction", () => {
   test("maps mxGraph relative x in [-1,1] to arc fraction from source", () => {

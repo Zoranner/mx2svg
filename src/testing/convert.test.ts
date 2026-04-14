@@ -108,7 +108,7 @@ describe("convert", () => {
       ),
     );
     expect(svg).toContain("Hello");
-    expect(svg).toContain('y="29"');
+    expect(svg).toContain('y="33"');
     expect(svg).not.toContain('y="110"');
   });
 
@@ -380,7 +380,7 @@ describe("convert", () => {
     const svg = convert(xml);
     expect(svg).toContain("relates");
     expect(svg).toContain('x="158"');
-    expect(svg).toContain('y="43"');
+    expect(svg).toContain('y="47"');
     expect(svg).toContain('paint-order="stroke fill"');
   });
 
@@ -477,7 +477,7 @@ describe("convert", () => {
     const svg = convert(xml);
     expect(svg).toContain("off");
     expect(svg).toContain('x="188"');
-    expect(svg).toContain('y="38"');
+    expect(svg).toContain('y="42"');
   });
 
   test("edge label mxPoint as label uses mxGraph relative x mapped to arc fraction", () => {
@@ -494,7 +494,7 @@ describe("convert", () => {
     expect(svg).toContain("frac");
     /** mxGraph：label x=0.25 为相对边中心位移 →弧长比例 (0.25+1)/2=0.625（非旧误解析的 0.25）。 */
     expect(svg).toContain('x="180.5"');
-    expect(svg).toContain('y="44.25"');
+    expect(svg).toContain('y="48.25"');
   });
 
   test("edge Array-only waypoints connect source and target perimeters", () => {

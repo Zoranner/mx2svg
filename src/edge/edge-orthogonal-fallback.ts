@@ -52,8 +52,7 @@ export function orthogonalizeTwoPointPolyline(
   const dx = p1.x - p0.x;
   const dy = p1.y - p0.y;
   if (dx === 0 || dy === 0) return pts;
-  const useVHV =
-    trunk === "vertical" || (trunk === undefined && Math.abs(dy) >= Math.abs(dx));
+  const useVHV = trunk === "vertical" || (trunk === undefined && Math.abs(dy) >= Math.abs(dx));
   if (useVHV) {
     const midY = (p0.y + p1.y) / 2;
     return [p0, { x: p0.x, y: midY }, { x: p1.x, y: midY }, p1];

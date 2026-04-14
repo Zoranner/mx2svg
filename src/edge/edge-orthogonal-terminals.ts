@@ -1,4 +1,5 @@
 import type { DiagramNode } from "../core/model.ts";
+import { shapeAnchorFromRatios } from "./edge-endpoint-spacing.ts";
 
 /** draw.io 边样式 `exitX`/`exitY`/`entryX`/`entryY`（相对单元 0～1，左上为原点）。 */
 export function parseEdgeConnectionHints(style: Map<string, string>): {
@@ -92,11 +93,11 @@ export function orthogonalEndpointsFromStyleOrInfer(
   const inferred = inferOrthogonalTerminals(source, target);
   const start =
     h.exitX != null && h.exitY != null
-      ? rectConnectionPointFromRatios(source, h.exitX, h.exitY)
+      ? shapeAnchorFromRatios(source, h.exitX, h.exitY)
       : inferred.start;
   const end =
     h.entryX != null && h.entryY != null
-      ? rectConnectionPointFromRatios(target, h.entryX, h.entryY)
+      ? shapeAnchorFromRatios(target, h.entryX, h.entryY)
       : inferred.end;
   return { start, end };
 }

@@ -24,7 +24,7 @@ export interface LabelBlockOpts {
   contentWidth?: number;
 }
 
-/** 形状内居中标签：单行 **`dominant-baseline="middle"`**；多行 **`tspan` `y`** 为 baseline 排梯，并用 **`mxLabelMultilineVisualCenterDyPx`** 下移使墨迹垂直中心与 **`cy`** 对齐。 */
+/** 形状内居中标签：单行与多行首行一致——**alphabetic基线**，**`y = cy + mxLabelMultilineVisualCenterDyPx`**，使墨迹垂直中心与 **`cy`** 对齐（避免单行用 **`middle`** 时整段偏上）。 */
 export function renderSvgLabelBlock(
   cx: number,
   cy: number,
@@ -54,13 +54,14 @@ export function renderSvgLabelBlock(
     else if (ta === "end") xRef = cx + tw / 2;
   }
 
+  const baselineMidDy = mxLabelMultilineVisualCenterDyPx(fs, st, opts?.defaultFontStack);
+
   if (lines.length === 1) {
-    return `<text x="${xRef}" y="${cy}" text-anchor="${ta}" dominant-baseline="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${fontFillOp}${halo}>${escLine(
+    return `<text x="${xRef}" y="${cy + baselineMidDy}" text-anchor="${ta}" font-size="${fs}" ${fontAttrs} fill="${fill}"${fontFillOp}${halo}>${escLine(
       lines[0],
     )}</text>`;
   }
 
-  const baselineMidDy = mxLabelMultilineVisualCenterDyPx(fs, st, opts?.defaultFontStack);
   const yFirst = cy - ((lines.length - 1) * lh) / 2 + baselineMidDy;
   const tspans = lines
     .map((line, i) => `<tspan x="${xRef}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
