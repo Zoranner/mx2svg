@@ -2,6 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 import { decompressDiagramInner } from "./decompress.ts";
 import { mxLabelToPlainText } from "./mx-label-plain.ts";
 import { polylinePointAtLengthFraction, polylinePointWithPerpendicularOffset } from "./polyline.ts";
+import { edgePolylineForLengthAndBounds } from "./edge-rounded.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 
@@ -175,6 +176,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const style = parseMxStyle(styleStr);
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
+    const rotation = numAttr(geoObj as Record<string, unknown>, "rotation", 0);
 
     nodes.push({
       id,
@@ -183,6 +185,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
       y: g.y,
       width: g.width,
       height: g.height,
+      rotation,
       label: mxLabelToPlainText(value),
       shape: inferShape(style),
       style,
@@ -219,7 +222,8 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const style = parseMxStyle(styleStr);
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
-    const labelPosition = resolveEdgeLabelPosition(geoObj, pts);
+    const labelPathPts = edgePolylineForLengthAndBounds(pts, style);
+    const labelPosition = resolveEdgeLabelPosition(geoObj, labelPathPts);
 
     edges.push({
       id,

@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
+import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
+
+describe("measureVertexLabelDisplayBlock", () => {
+  test("softWrap false keeps single long line width", () => {
+    const m = measureVertexLabelDisplayBlock("hello world", 40, 12, 8, false);
+    expect(m.width).toBeGreaterThan(0);
+    expect(m.height).toBeGreaterThan(0);
+  });
+});
 
 describe("wrapVertexLabelToBoxWidth (Pretext)", () => {
   test("wraps long Latin line to multiple lines", () => {

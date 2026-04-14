@@ -20,6 +20,8 @@ export interface DiagramNode {
   y: number;
   width: number;
   height: number;
+  /** `mxGeometry` 的 `rotation`（度），绕框中心；0 表示不旋转。 */
+  rotation: number;
   label: string;
   shape: NodeShape;
   /** 原始 style 键值（小写 key，便于扩展） */

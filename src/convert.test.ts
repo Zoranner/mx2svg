@@ -173,6 +173,43 @@ describe("convert", () => {
     expect(svg).toContain("100,80");
   });
 
+  test("rounded=1 on polyline edge renders orthogonal corner path", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="e1" edge="1" parent="1" style="rounded=1;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="0" as="sourcePoint"/>
+      <Array as="points"><mxPoint x="0" y="50"/></Array>
+      <mxPoint x="100" y="50" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toContain('d="M 0 0 L 0 40 Q 0 50 10 50 L 100 50"');
+  });
+
+  test("curved=1 renders path with Q commands", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="e1" edge="1" parent="1" style="curved=1;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="0" as="sourcePoint"/>
+      <Array as="points">
+        <mxPoint x="0" y="50"/><mxPoint x="100" y="50"/>
+      </Array>
+      <mxPoint x="100" y="0" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toContain('d="M 0 0 Q 0 50 50 50 Q 100 50 100 0"');
+    expect(svg).not.toContain("<polyline");
+  });
+
   test("rect with rounded=0 has no corner radius", () => {
     const svg = convert(minimalMxfile);
     expect(svg).toContain('rx="0"');
@@ -210,6 +247,25 @@ describe("convert", () => {
     expect(svg).toContain("<tspan");
     expect(svg).toContain("Line1");
     expect(svg).toContain("Line2");
+  });
+
+  test("vertex labelBackgroundColor draws rounded rect under label", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;labelBackgroundColor=#e1d5e7;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('fill="#e1d5e7"');
+    expect(svg).toMatch(/<rect[^>]*rx="4"[^>]*ry="4"[^>]*fill="#e1d5e7"/);
+  });
+
+  test("vertex mxGeometry rotation wraps group in svg rotate around center", () => {
+    const xml = minimalMxfile.replace(
+      '<mxGeometry x="100" y="80" width="120" height="60" as="geometry"/>',
+      '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('transform="rotate(45, 160, 110)"');
   });
 
   test("vertex fontColor sets text fill", () => {

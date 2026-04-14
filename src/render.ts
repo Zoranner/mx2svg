@@ -1,7 +1,14 @@
+import { buildCurvedEdgePathD, isCurvedEdgeStyle } from "./edge-curve.ts";
+import {
+  buildRoundedOrthogonalPathD,
+  edgePolylineForLengthAndBounds,
+  edgeRoundedArcSizeFromStyle,
+  useRoundedOrthogonalPath,
+} from "./edge-rounded.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
 import { polylinePointAtLengthFraction } from "./polyline.ts";
 import { shapePathD } from "./shape-path.ts";
-import { wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
+import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
 
 export interface RenderOptions {
   /** 渲染第几页（0-based），默认 0 */
@@ -107,6 +114,37 @@ function allocFill(
   return `url(#${id})`;
 }
 
+function bumpRotatedRect(
+  bump: (x: number, y: number) => void,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rotationDeg: number,
+): void {
+  if (!rotationDeg) {
+    bump(x, y);
+    bump(x + w, y + h);
+    return;
+  }
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const rad = (rotationDeg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const corners: [number, number][] = [
+    [x, y],
+    [x + w, y],
+    [x + w, y + h],
+    [x, y + h],
+  ];
+  for (const [px, py] of corners) {
+    const dx = px - cx;
+    const dy = py - cy;
+    bump(cx + dx * cos - dy * sin, cy + dx * sin + dy * cos);
+  }
+}
+
 function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
   minX: number;
   minY: number;
@@ -126,11 +164,11 @@ function bounds(page: { nodes: DiagramNode[]; edges: DiagramEdge[] }): {
   };
 
   for (const n of page.nodes) {
-    bump(n.x, n.y);
-    bump(n.x + n.width, n.y + n.height);
+    bumpRotatedRect(bump, n.x, n.y, n.width, n.height, n.rotation);
   }
   for (const e of page.edges) {
-    for (const p of e.points) {
+    const pts = edgePolylineForLengthAndBounds(e.points, e.style);
+    for (const p of pts) {
       bump(p.x, p.y);
     }
   }
@@ -197,21 +235,34 @@ function renderEdge(e: DiagramEdge): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
-  const pts = e.points.map((p) => `${p.x},${p.y}`).join(" ");
+  const curved = isCurvedEdgeStyle(e.style);
+  const roundedPath = useRoundedOrthogonalPath(e.style, e.points.length);
   const dashAttr = strokeDashAttr(e.style);
   const arrowEnd = wantsArrowEnd(e.style);
   const arrowStart = wantsArrowStart(e.style);
   const markerEnd = arrowEnd ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
   const markerStart = arrowStart ? ' marker-start="url(#mx2svg-arrow-start)"' : "";
 
-  const parts: string[] = [
-    `<polyline points="${pts}" fill="none" stroke="${esc(
-      stroke,
-    )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`,
-  ];
+  const pathD = curved
+    ? buildCurvedEdgePathD(e.points)
+    : roundedPath
+      ? buildRoundedOrthogonalPathD(e.points, edgeRoundedArcSizeFromStyle(e.style))
+      : null;
+
+  const lineEl =
+    pathD != null
+      ? `<path d="${esc(pathD)}" fill="none" stroke="${esc(
+          stroke,
+        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`
+      : `<polyline points="${e.points.map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
+          stroke,
+        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${markerStart}${markerEnd}/>`;
+
+  const parts: string[] = [lineEl];
 
   if (e.label.trim()) {
-    const anchor = e.labelPosition ?? polylinePointAtLengthFraction(e.points, 0.5);
+    const lengthPts = edgePolylineForLengthAndBounds(e.points, e.style);
+    const anchor = e.labelPosition ?? polylinePointAtLengthFraction(lengthPts, 0.5);
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
     parts.push(
       renderSvgLabelBlock(anchor.x, anchor.y, fs, e.label, { contrastStroke: true, fill: labelFill }),
@@ -255,13 +306,38 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   if (n.label.trim()) {
     const tx = n.x + n.width / 2;
     const ty = n.y + n.height / 2;
-    const wrap =
-      n.style.get("whitespace") === "wrap" ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, 8) : n.label;
+    const labelInset = 8;
+    const softWrap = n.style.get("whitespace") === "wrap";
+    const wrap = softWrap ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset) : n.label;
+    const labelBg = colorOr(n.style, "labelbackgroundcolor", "");
+    if (labelBg && labelBg !== "none") {
+      const { width: tw, height: th } = measureVertexLabelDisplayBlock(
+        wrap,
+        n.width,
+        fs,
+        labelInset,
+        softWrap,
+      );
+      const pad = 4;
+      const bw = tw + pad * 2;
+      const bh = th + pad * 2;
+      const bx = tx - bw / 2;
+      const by = ty - bh / 2;
+      parts.push(
+        `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${esc(labelBg)}"/>`,
+      );
+    }
     const labelFill = colorOr(n.style, "fontcolor", "#000000");
     parts.push(renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill }));
   }
 
-  return `<g data-mx2svg-id="${esc(n.id)}">${parts.join("")}</g>`;
+  const inner = parts.join("");
+  if (n.rotation !== 0) {
+    const rcx = n.x + n.width / 2;
+    const rcy = n.y + n.height / 2;
+    return `<g data-mx2svg-id="${esc(n.id)}"><g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${inner}</g></g>`;
+  }
+  return `<g data-mx2svg-id="${esc(n.id)}">${inner}</g>`;
 }
 
 const ARROW_DEFS = `<marker id="mx2svg-arrow-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
