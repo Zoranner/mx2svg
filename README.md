@@ -112,7 +112,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 | 类别 | 已覆盖（示例） |
 |------|----------------|
 | 几何 | `sourcePoint` → 路点 → `targetPoint`；无点则连两端中心 |
-| 路由 | **`curved`**（二次贝塞尔）、**`rounded`** 正交圆角、**`jumpStyle=arc`**（与 **`jumpSize`**、**`noJump`** 等配合）；优先级：**跳线 > 曲线 > 圆角 > 折线** |
+| 路由 | **`curved`**（二次贝塞尔）、**`rounded`** 正交圆角、**`jumpStyle`**（**`arc` / `line` / `sharp` / `gap`**，与 **`jumpSize`**、**`noJump`** 等配合；几何对齐 draw.io `mxConnector.paintLine`）；优先级：**跳线 > 曲线 > 圆角 > 折线** |
 | 端点 **`spacing`** | 无显式端点、回退为中心连线时，沿形状周界穿出再内收；**凸多边形**与 **`cloud` / `cylinder` / `document` / `dataStorage`** 等曲线轮廓已接周界近似（旋转几何下与 **`shape-path`** 一致） |
 | 箭头 | **`endArrow` / `startArrow`** 多种、`endSize` / `startSize` |
 | 样式 | 与顶点类似的描边/虚线/透明度；**`noLabel`**、标签 **`align` / `verticalAlign`**、**`labelPadding`**、**`labelBackgroundColor`**、**`overflow=hidden`** 等 |
@@ -141,7 +141,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 ### 近期（增量，优先可测）
 
 - 边标签在 **曲线 / 多行 / 极端 `align`** 组合下的位置与基线微调，补回归用例。
-- **`jumpStyle`**：调研 **`arc` 以外**（如 line 等）在 mxGraph 中的几何定义，评估与当前折线路由的接法。
+- **`jumpStyle`**：与编辑器差异的边角用例（多交点、缩放等）。
 - **箭头**：补齐常用 **`startArrow` / `endArrow`** 变体及与线宽、marker 尺寸的一致性。
 - **周界与 `spacing`**：对仍用轴对齐近似的形状做清单化排查；旋转矩形 / 椭圆边角用例加固。
 
@@ -164,4 +164,4 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 - 系统字体与编辑器 **像素级一致** 不保证；已用 Canvas 尽量对齐测宽测高。
 - 标签无 HTML 富文本；复杂样式以 draw.io 为准时需降低预期或自行扩展渲染。
-- **`jumpStyle`** 当前仅 **`arc`**；更多样式见路线图。
+- **`jumpStyle`** 已支持 **`arc` / `line` / `sharp` / `gap`**；极端图元密度下与编辑器仍可能有视觉差。

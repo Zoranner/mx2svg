@@ -1,5 +1,6 @@
 /**
- * 边交叉跳线：`jumpStyle=arc` 时在与其他边相交处画弧形跨越（与 draw.io 行为对齐；`curved=1` 或 `noJump=1` 时不启用）。
+ * 边交叉跳线：与 draw.io `Graph.js` 中 `mxConnector.prototype.paintLine` 一致，
+ * 支持 `jumpStyle`：`arc`、`line`、`sharp`、`gap`（`curved=1` 或 `noJump=1` 时不启用）。
  */
 
 import type { CurvePoint } from "./edge-curve.ts";
@@ -11,12 +12,20 @@ export type EdgeWaypointRef = {
   style: Map<string, string>;
 };
 
-export function isJumpArcEnabled(style: Map<string, string>): boolean {
+export type JumpStyleKind = "none" | "arc" | "line" | "sharp" | "gap";
+
+/** 与 draw.io 格式面板中 `lineJumps` 选项一致：`none` | `arc` | `gap` | `sharp` | `line`。 */
+export function jumpStyleFromStyle(style: Map<string, string>): JumpStyleKind {
+  const js = (style.get("jumpstyle") ?? "none").toLowerCase().trim();
+  if (js === "arc" || js === "line" || js === "sharp" || js === "gap") return js;
+  return "none";
+}
+
+export function isJumpStyleEnabled(style: Map<string, string>): boolean {
   if (isCurvedEdgeStyle(style)) return false;
   const nj = style.get("nojump");
   if (nj === "1" || nj === "true") return false;
-  const js = (style.get("jumpstyle") ?? "").toLowerCase().trim();
-  if (js !== "arc") return false;
+  if (jumpStyleFromStyle(style) === "none") return false;
   const raw = style.get("jumpsize");
   const jz = raw == null || raw === "" ? 6 : Number(raw);
   const jumpSize = Number.isFinite(jz) ? jz : 6;
@@ -109,7 +118,7 @@ export function collectJumpMap(
   all: EdgeWaypointRef[],
 ): Map<number, CurvePoint[]> {
   const jumpMap = new Map<number, CurvePoint[]>();
-  if (!isJumpArcEnabled(current.style) || points.length < 2) return jumpMap;
+  if (!isJumpStyleEnabled(current.style) || points.length < 2) return jumpMap;
 
   const scale = 1;
   const endpointTol = 0.5 * scale;
@@ -215,18 +224,21 @@ export interface JumpPathResult {
   polyline: CurvePoint[];
 }
 
-/** 在路点折线上插入跳线弧；`strokeWidth` 用于与 draw.io 一致的 `jumpOffset`。 */
+/**
+ * 在路点折线上插入跳线；`strokeWidth` 用于与 draw.io 一致的
+ * `(jumpSize - 2) / 2 + strokewidth`。
+ */
 export function buildJumpPathDAndPolyline(
   points: CurvePoint[],
   jumpMap: Map<number, CurvePoint[]>,
   style: Map<string, string>,
   strokeWidth: number,
 ): JumpPathResult | null {
-  if (!isJumpArcEnabled(style) || jumpMap.size === 0 || points.length < 2) return null;
+  if (!isJumpStyleEnabled(style) || jumpMap.size === 0 || points.length < 2) return null;
 
+  const jumpStyle = jumpStyleFromStyle(style);
   const jumpSize = jumpSizeFromStyle(style);
   const jumpOffset = Math.max(0, (jumpSize - 2) / 2 + strokeWidth);
-  const jumpArcOffset = jumpOffset * 1.3;
   const round2 = (v: number) => Number(v.toFixed(2));
 
   let path = `M ${round2(points[0].x)} ${round2(points[0].y)}`;
@@ -248,8 +260,6 @@ export function buildJumpPathDAndPolyline(
 
     const ux = dx / len;
     const uy = dy / len;
-    const perpX = -uy;
-    const perpY = ux;
     const dirSign = Math.round(ux) < 0 || (Math.round(ux) === 0 && Math.round(uy) <= 0) ? 1 : -1;
     let currentDist = 0;
 
@@ -262,22 +272,54 @@ export function buildJumpPathDAndPolyline(
 
       const jumpStart = { x: start.x + ux * jumpStartDist, y: start.y + uy * jumpStartDist };
       const jumpEnd = { x: start.x + ux * jumpEndDist, y: start.y + uy * jumpEndDist };
-      const ctrlX = perpX * jumpArcOffset * dirSign;
-      const ctrlY = perpY * jumpArcOffset * dirSign;
-
-      const c1 = { x: jumpStart.x + ctrlX, y: jumpStart.y + ctrlY };
-      const c2 = { x: jumpEnd.x + ctrlX, y: jumpEnd.y + ctrlY };
+      const nx = ux * jumpOffset;
+      const ny = uy * jumpOffset;
+      const f = dirSign;
 
       path += ` L ${round2(jumpStart.x)} ${round2(jumpStart.y)}`;
-      path += ` C ${round2(c1.x)} ${round2(c1.y)} ${round2(c2.x)} ${round2(c2.y)} ${round2(jumpEnd.x)} ${round2(jumpEnd.y)}`;
 
-      pushPt(poly, jumpStart);
-      const p0 = jumpStart;
-      const p3 = jumpEnd;
-      for (let s = 1; s <= 8; s++) {
-        const t = s / 8;
-        pushPt(poly, cubicPoint(p0, c1, c2, p3, t));
+      if (jumpStyle === "arc") {
+        const F = f * 1.3;
+        const c1 = { x: jumpStart.x - ny * F, y: jumpStart.y + nx * F };
+        const c2 = { x: jumpEnd.x - ny * F, y: jumpEnd.y + nx * F };
+        path += ` C ${round2(c1.x)} ${round2(c1.y)} ${round2(c2.x)} ${round2(c2.y)} ${round2(jumpEnd.x)} ${round2(jumpEnd.y)}`;
+        pushPt(poly, jumpStart);
+        for (let s = 1; s <= 8; s++) {
+          pushPt(poly, cubicPoint(jumpStart, c1, c2, jumpEnd, s / 8));
+        }
+      } else if (jumpStyle === "sharp") {
+        const pA = { x: jumpStart.x - ny * f, y: jumpStart.y + nx * f };
+        const pB = { x: jumpEnd.x - ny * f, y: jumpEnd.y + nx * f };
+        path += ` L ${round2(pA.x)} ${round2(pA.y)}`;
+        path += ` L ${round2(pB.x)} ${round2(pB.y)}`;
+        path += ` L ${round2(jumpEnd.x)} ${round2(jumpEnd.y)}`;
+        pushPt(poly, jumpStart);
+        pushPt(poly, pA);
+        pushPt(poly, pB);
+        pushPt(poly, jumpEnd);
+      } else if (jumpStyle === "line") {
+        const s1 = { x: jumpStart.x + ny * f, y: jumpStart.y - nx * f };
+        const s2 = { x: jumpStart.x - ny * f, y: jumpStart.y + nx * f };
+        const s3 = { x: jumpEnd.x - ny * f, y: jumpEnd.y + nx * f };
+        const s4 = { x: jumpEnd.x + ny * f, y: jumpEnd.y - nx * f };
+        path += ` M ${round2(s1.x)} ${round2(s1.y)}`;
+        path += ` L ${round2(s2.x)} ${round2(s2.y)}`;
+        path += ` M ${round2(s3.x)} ${round2(s3.y)}`;
+        path += ` L ${round2(s4.x)} ${round2(s4.y)}`;
+        path += ` M ${round2(jumpEnd.x)} ${round2(jumpEnd.y)}`;
+        pushPt(poly, jumpStart);
+        pushPt(poly, s1);
+        pushPt(poly, s2);
+        pushPt(poly, s3);
+        pushPt(poly, s4);
+        pushPt(poly, jumpEnd);
+      } else {
+        /* gap */
+        path += ` M ${round2(jumpEnd.x)} ${round2(jumpEnd.y)}`;
+        pushPt(poly, jumpStart);
+        pushPt(poly, jumpEnd);
       }
+
       currentDist = jumpEndDist;
     }
 

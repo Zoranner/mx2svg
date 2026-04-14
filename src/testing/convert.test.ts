@@ -492,6 +492,78 @@ describe("convert", () => {
     expect(hGroup![0]).toContain(" C ");
   });
 
+  test("jumpStyle=sharp uses polyline corners at crossing (no cubic)", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="h" edge="1" parent="1" style="jumpStyle=sharp;jumpSize=6;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="50" as="sourcePoint"/>
+      <mxPoint x="100" y="50" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+  <mxCell id="v" edge="1" parent="1" style="strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="50" y="0" as="sourcePoint"/>
+      <mxPoint x="50" y="100" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const hGroup = svg.match(/data-mx2svg-edge="h"[^>]*>[\s\S]*?<\/g>/);
+    expect(hGroup).not.toBeNull();
+    expect(hGroup![0]).not.toContain(" C ");
+    expect(hGroup![0]).toMatch(/ L [\d.-]+ [\d.-]+ L [\d.-]+ [\d.-]+ L [\d.-]+ [\d.-]+ L /);
+  });
+
+  test("jumpStyle=line draws gap ticks with extra moveto subpaths", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="h" edge="1" parent="1" style="jumpStyle=line;jumpSize=6;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="50" as="sourcePoint"/>
+      <mxPoint x="100" y="50" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+  <mxCell id="v" edge="1" parent="1" style="strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="50" y="0" as="sourcePoint"/>
+      <mxPoint x="50" y="100" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const hGroup = svg.match(/data-mx2svg-edge="h"[^>]*>[\s\S]*?<\/g>/);
+    expect(hGroup).not.toBeNull();
+    expect(hGroup![0]).not.toContain(" C ");
+    expect(hGroup![0]).toMatch(/ L [\d.-]+ [\d.-]+ M [\d.-]+ [\d.-]+ L /);
+  });
+
+  test("jumpStyle=gap breaks path with moveto (no bridge)", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="h" edge="1" parent="1" style="jumpStyle=gap;jumpSize=6;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="50" as="sourcePoint"/>
+      <mxPoint x="100" y="50" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+  <mxCell id="v" edge="1" parent="1" style="strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="50" y="0" as="sourcePoint"/>
+      <mxPoint x="50" y="100" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const hGroup = svg.match(/data-mx2svg-edge="h"[^>]*>[\s\S]*?<\/g>/);
+    expect(hGroup).not.toBeNull();
+    expect(hGroup![0]).not.toContain(" C ");
+    expect(hGroup![0]).toMatch(/ L [\d.-]+ [\d.-]+ M [\d.-]+ [\d.-]+/);
+  });
+
   test("curved=1 renders path with Q commands", () => {
     const xml = `<?xml version="1.0"?>
 <mxfile><diagram id="p1" name="P"><mxGraphModel><root>
