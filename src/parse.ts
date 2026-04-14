@@ -223,6 +223,8 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
     const labelFields = parseEdgeLabelFields(geoObj);
+    const geoW = numAttr(geoObj, "width", NaN);
+    const labelWrapWidth = Number.isFinite(geoW) && geoW > 0 ? geoW : undefined;
 
     edges.push({
       id,
@@ -230,6 +232,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
       points: pts,
       label: mxLabelToPlainText(value),
       ...labelFields,
+      ...(labelWrapWidth !== undefined ? { labelWrapWidth } : {}),
       style,
       ...(source ? { source } : {}),
       ...(target ? { target } : {}),

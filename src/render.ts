@@ -341,8 +341,14 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
   if (e.label.trim()) {
     const anchor = edgeLabelAnchor(e, m.metricsPolyline);
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
+    const softWrap = e.style.get("whitespace") === "wrap";
+    const wrapBoxW =
+      e.labelWrapWidth ?? (softWrap ? Math.max(56, Math.round(fs * 6.5)) : Number.POSITIVE_INFINITY);
+    const displayLabel = softWrap
+      ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0)
+      : e.label;
     parts.push(
-      renderSvgLabelBlock(anchor.x, anchor.y, fs, e.label, { contrastStroke: true, fill: labelFill }),
+      renderSvgLabelBlock(anchor.x, anchor.y, fs, displayLabel, { contrastStroke: true, fill: labelFill }),
     );
   }
 

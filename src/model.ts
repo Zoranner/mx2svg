@@ -48,6 +48,8 @@ export interface DiagramEdge {
   edgeLabelPath?: { fraction: number; normalOffset: number };
   /** `relative=1` 且 geometry 带 x/y：相对路径几何中点的偏移。 */
   edgeLabelMidOffset?: { dx: number; dy: number };
+  /** 边 `mxGeometry` 的 `width`（>0）：`whiteSpace=wrap` 时作为标签最大行宽（像素）。 */
+  labelWrapWidth?: number;
   style: Map<string, string>;
   source?: string;
   target?: string;

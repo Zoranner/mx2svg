@@ -214,6 +214,18 @@ describe("convert", () => {
     expect(svg).toContain('marker-end="url(#mx2svg-am-open-end-82b366)"');
   });
 
+  test("edge label whiteSpace=wrap uses geometry width and yields multiple tspans", () => {
+    const xml = minimalMxfile
+      .replace(
+        '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+        '<mxCell id="4" value="aa bb cc dd ee ff gg hh ii" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;whiteSpace=wrap;fontSize=11;">',
+      )
+      .replace('<mxGeometry relative="1" as="geometry"/>', '<mxGeometry relative="1" width="52" height="40" as="geometry"/>');
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect((inner.match(/<tspan/g) ?? []).length).toBeGreaterThan(1);
+  });
+
   test("renders edge label at midpoint of polyline with contrast stroke", () => {
     const xml = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
