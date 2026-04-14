@@ -1,1 +1,3 @@
 node_modules/
+# 单测 CLI 写入的示例 SVG，仅本地目视
+.test-output/

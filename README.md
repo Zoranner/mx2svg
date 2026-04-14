@@ -9,6 +9,11 @@ bun install
 bun test
 ```
 
+跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
+
+- **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`）
+- **`convert/`**：**`convert-output.test.ts`** 写入的 **15+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、标签衬底、边标签比例、双开箭头等），便于逐项打开对照
+
 ### 程序化集成（开发中直接使用）
 
 **不需要 CLI**：把 `drawioXml` 当普通字符串传入即可（读文件、接口返回、内联字面量都行）。
