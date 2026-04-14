@@ -1,5 +1,5 @@
 import { parseDrawioXml } from "./parse.ts";
-import { renderToSvg, type RenderOptions } from "./render.ts";
+import { type RenderOptions, renderToSvg } from "./render.ts";
 
 export type ConvertOptions = RenderOptions;
 

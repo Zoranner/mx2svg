@@ -38,7 +38,11 @@ export function svgFontStack(style: Map<string, string>, defaultTailStack?: stri
 /**
  * Canvas `font` 串，供 Pretext 测量（顺序：font-style font-weight size family）。
  */
-export function canvasFontString(fontSizePx: number, style: Map<string, string>, defaultTailStack?: string): string {
+export function canvasFontString(
+  fontSizePx: number,
+  style: Map<string, string>,
+  defaultTailStack?: string,
+): string {
   const bits = mxFontStyleBits(style);
   const weight = (bits & MX_FONT_BOLD) !== 0 ? "bold" : "normal";
   const slant = (bits & MX_FONT_ITALIC) !== 0 ? "italic" : "normal";

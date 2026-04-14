@@ -57,7 +57,12 @@ function ptLineDist(a: CurvePoint, b: CurvePoint, p: CurvePoint): number {
   return Math.sqrt(ptSegDistSq(a.x, a.y, b.x, b.y, p.x, p.y));
 }
 
-function intersectSegments(a: CurvePoint, b: CurvePoint, c: CurvePoint, d: CurvePoint): CurvePoint | null {
+function intersectSegments(
+  a: CurvePoint,
+  b: CurvePoint,
+  c: CurvePoint,
+  d: CurvePoint,
+): CurvePoint | null {
   const s1x = b.x - a.x;
   const s1y = b.y - a.y;
   const s2x = d.x - c.x;
@@ -70,7 +75,13 @@ function intersectSegments(a: CurvePoint, b: CurvePoint, c: CurvePoint, d: Curve
   return { x: a.x + t * s1x, y: a.y + t * s1y };
 }
 
-function cubicPoint(p0: CurvePoint, p1: CurvePoint, p2: CurvePoint, p3: CurvePoint, t: number): CurvePoint {
+function cubicPoint(
+  p0: CurvePoint,
+  p1: CurvePoint,
+  p2: CurvePoint,
+  p3: CurvePoint,
+  t: number,
+): CurvePoint {
   const u = 1 - t;
   const u2 = u * u;
   const u3 = u2 * u;
@@ -132,8 +143,14 @@ export function collectJumpMap(
         let otherNext = other.points[j + 2];
         while (
           j < other.points.length - 2 &&
-          ptSegDistSq(otherStart.x, otherStart.y, otherNext.x, otherNext.y, otherEnd.x, otherEnd.y) <
-            mergeTolSq
+          ptSegDistSq(
+            otherStart.x,
+            otherStart.y,
+            otherNext.x,
+            otherNext.y,
+            otherEnd.x,
+            otherEnd.y,
+          ) < mergeTolSq
         ) {
           otherEnd = otherNext;
           j++;
@@ -144,7 +161,8 @@ export function collectJumpMap(
         if (hit) {
           const nearStart =
             Math.abs(hit.x - start.x) <= endpointTol && Math.abs(hit.y - start.y) <= endpointTol;
-          const nearEnd = Math.abs(hit.x - end.x) <= endpointTol && Math.abs(hit.y - end.y) <= endpointTol;
+          const nearEnd =
+            Math.abs(hit.x - end.x) <= endpointTol && Math.abs(hit.y - end.y) <= endpointTol;
           if (!nearStart && !nearEnd) {
             const prevTooClose =
               prevOtherStart != null
@@ -182,7 +200,10 @@ export function collectJumpMap(
     }
 
     if (intersections.length > 0) {
-      jumpMap.set(i, intersections.map((it) => it.pt));
+      jumpMap.set(
+        i,
+        intersections.map((it) => it.pt),
+      );
     }
   }
 

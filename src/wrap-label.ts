@@ -17,9 +17,13 @@ export function measureVertexLabelDisplayBlock(
 ): { width: number; height: number } {
   const maxContent = Math.max(1, boxWidthPx - 2 * horizontalInsetPx);
   const lineHeight = fontSizePx * 1.2;
-  const prepared = prepareWithSegments(displayText, canvasFontString(fontSizePx, style, defaultFontStack), {
-    whiteSpace: "pre-wrap",
-  });
+  const prepared = prepareWithSegments(
+    displayText,
+    canvasFontString(fontSizePx, style, defaultFontStack),
+    {
+      whiteSpace: "pre-wrap",
+    },
+  );
   const layoutMaxWidth = softWrap ? maxContent : 1e9;
   const { lines, height } = layoutWithLines(prepared, layoutMaxWidth, lineHeight);
   const maxLineW = lines.length === 0 ? 0 : Math.max(...lines.map((l) => l.width));
@@ -40,9 +44,13 @@ export function wrapVertexLabelToBoxWidth(
 ): string {
   const maxW = Math.max(1, boxWidthPx - 2 * horizontalInsetPx);
   const lineHeight = fontSizePx * 1.2;
-  const prepared = prepareWithSegments(label, canvasFontString(fontSizePx, style, defaultFontStack), {
-    whiteSpace: "pre-wrap",
-  });
+  const prepared = prepareWithSegments(
+    label,
+    canvasFontString(fontSizePx, style, defaultFontStack),
+    {
+      whiteSpace: "pre-wrap",
+    },
+  );
   const { lines } = layoutWithLines(prepared, maxW, lineHeight);
   return lines.map((l) => l.text).join("\n");
 }

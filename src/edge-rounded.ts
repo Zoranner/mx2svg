@@ -2,7 +2,7 @@
  * 正交折线边的圆角：`rounded=1` 且至少 3 个路点时，与 draw.io mxShape.addPoints 一致的 L + Q 路径。
  */
 
-import { curvedEdgeToPolylineApprox, isCurvedEdgeStyle, type CurvePoint } from "./edge-curve.ts";
+import { type CurvePoint, curvedEdgeToPolylineApprox, isCurvedEdgeStyle } from "./edge-curve.ts";
 
 export function isEdgeRoundedOrthogonalStyle(style: Map<string, string>): boolean {
   const r = style.get("rounded");
@@ -18,7 +18,10 @@ export function edgeRoundedArcSizeFromStyle(style: Map<string, string>): number 
   return Number.isFinite(n) ? n : undefined;
 }
 
-export function buildRoundedOrthogonalPathD(points: CurvePoint[], arcSizeOverride?: number): string {
+export function buildRoundedOrthogonalPathD(
+  points: CurvePoint[],
+  arcSizeOverride?: number,
+): string {
   const arcSize = arcSizeOverride != null ? arcSizeOverride / 2 : 10;
   const pts = points;
   const round2 = (value: number): number => Number(value.toFixed(2));
@@ -164,7 +167,10 @@ export function roundedOrthogonalToPolylineApprox(
 }
 
 /** 用于标签锚点、包围盒：曲线 / 圆角边用近似折线，其余用原始路点。 */
-export function edgePolylineForLengthAndBounds(points: CurvePoint[], style: Map<string, string>): CurvePoint[] {
+export function edgePolylineForLengthAndBounds(
+  points: CurvePoint[],
+  style: Map<string, string>,
+): CurvePoint[] {
   if (isCurvedEdgeStyle(style)) {
     return curvedEdgeToPolylineApprox(points);
   }

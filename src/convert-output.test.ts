@@ -139,10 +139,7 @@ describe("convert → .test-output/convert", () => {
   });
 
   test("vertex multiline br", () => {
-    const xml = minimalMxfile.replace(
-      'value="Hello"',
-      'value="Line1&lt;br/&gt;Line2"',
-    );
+    const xml = minimalMxfile.replace('value="Hello"', 'value="Line1&lt;br/&gt;Line2"');
     const svg = convert(xml);
     expect(svg).toContain("<tspan");
     dump("11-vertex-multiline-br", svg);
@@ -182,10 +179,7 @@ describe("convert → .test-output/convert", () => {
   });
 
   test("vertex dashed stroke", () => {
-    const xml = minimalMxfile.replace(
-      "strokeColor=#6c8ebf;",
-      "strokeColor=#6c8ebf;dashed=1;",
-    );
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;dashed=1;");
     const svg = convert(xml);
     expect(svg).toContain("stroke-dasharray");
     dump("15-vertex-dashed", svg);

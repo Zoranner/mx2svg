@@ -48,7 +48,11 @@ export function arrowColorSlug(strokeRaw: string): string {
   return (h >>> 0).toString(16);
 }
 
-export function arrowMarkerId(kind: ArrowHeadKind, side: "end" | "start", strokeRaw: string): string {
+export function arrowMarkerId(
+  kind: ArrowHeadKind,
+  side: "end" | "start",
+  strokeRaw: string,
+): string {
   return `mx2svg-am-${kind}-${side}-${arrowColorSlug(strokeRaw)}`;
 }
 
@@ -56,7 +60,12 @@ function escAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function renderMarkerDef(id: string, kind: ArrowHeadKind, side: "end" | "start", strokeRaw: string): string {
+function renderMarkerDef(
+  id: string,
+  kind: ArrowHeadKind,
+  side: "end" | "start",
+  strokeRaw: string,
+): string {
   const c = escAttr(strokeRaw);
   switch (kind) {
     case "none":

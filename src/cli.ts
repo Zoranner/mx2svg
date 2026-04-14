@@ -36,7 +36,10 @@ function printHelp(): void {
 `);
 }
 
-type InputSource = { kind: "file"; path: string } | { kind: "literal"; xml: string } | { kind: "stdin" };
+type InputSource =
+  | { kind: "file"; path: string }
+  | { kind: "literal"; xml: string }
+  | { kind: "stdin" };
 
 function main(): void {
   const argv = process.argv.slice(2);

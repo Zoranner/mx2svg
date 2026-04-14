@@ -1,16 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import {
+  canvasFontString,
   MX_FONT_BOLD,
   MX_FONT_ITALIC,
   MX_FONT_UNDERLINE,
-  canvasFontString,
   mxFontStyleBits,
   svgFontAttrString,
   svgFontStack,
 } from "./mx-font.ts";
 
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function style(entries: Record<string, string>): Map<string, string> {
@@ -24,7 +28,9 @@ describe("mx-font", () => {
     expect(mxFontStyleBits(style({ fontStyle: "2" }))).toBe(MX_FONT_ITALIC);
     expect(mxFontStyleBits(style({ fontStyle: "3" }))).toBe(MX_FONT_BOLD | MX_FONT_ITALIC);
     expect(mxFontStyleBits(style({ fontStyle: "4" }))).toBe(MX_FONT_UNDERLINE);
-    expect(mxFontStyleBits(style({ fontStyle: "7" }))).toBe(MX_FONT_BOLD | MX_FONT_ITALIC | MX_FONT_UNDERLINE);
+    expect(mxFontStyleBits(style({ fontStyle: "7" }))).toBe(
+      MX_FONT_BOLD | MX_FONT_ITALIC | MX_FONT_UNDERLINE,
+    );
   });
 
   test("svgFontStack prepends fontFamily", () => {
@@ -34,7 +40,9 @@ describe("mx-font", () => {
 
   test("svgFontStack defaultTailStack replaces library default when no fontFamily", () => {
     expect(svgFontStack(new Map(), "Verdana, sans-serif")).toBe("Verdana, sans-serif");
-    expect(svgFontStack(style({ fontFamily: "Georgia" }), "Verdana, sans-serif")).toMatch(/^Georgia,/);
+    expect(svgFontStack(style({ fontFamily: "Georgia" }), "Verdana, sans-serif")).toMatch(
+      /^Georgia,/,
+    );
   });
 
   test("svgFontAttrString emits bold italic underline", () => {

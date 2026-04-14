@@ -18,7 +18,9 @@ function quadPoint(p0: CurvePoint, p1: CurvePoint, p2: CurvePoint, t: number): C
 }
 
 /** 与 buildEdgePath(curved) 一致的分段列表，用于密化折线（标签锚点、包围盒）。 */
-export function curvedEdgeSegments(points: CurvePoint[]): { p0: CurvePoint; p1: CurvePoint; p2: CurvePoint }[] {
+export function curvedEdgeSegments(
+  points: CurvePoint[],
+): { p0: CurvePoint; p1: CurvePoint; p2: CurvePoint }[] {
   const n = points.length;
   if (n < 2) return [];
   if (n === 2) {
@@ -64,7 +66,10 @@ export function buildCurvedEdgePathD(points: CurvePoint[]): string {
  * 将曲线边近似为折线，供弧长比例、法向偏移与 viewBox 扩展。
  * `samplesPerSegment`：每段二次曲线上的采样数（含端点间步进）。
  */
-export function curvedEdgeToPolylineApprox(points: CurvePoint[], samplesPerSegment = 12): CurvePoint[] {
+export function curvedEdgeToPolylineApprox(
+  points: CurvePoint[],
+  samplesPerSegment = 12,
+): CurvePoint[] {
   const segs = curvedEdgeSegments(points);
   if (segs.length === 0) return [];
   const out: CurvePoint[] = [];
@@ -73,11 +78,7 @@ export function curvedEdgeToPolylineApprox(points: CurvePoint[], samplesPerSegme
       const t = s / samplesPerSegment;
       const pt = quadPoint(seg.p0, seg.p1, seg.p2, t);
       const prev = out[out.length - 1];
-      if (
-        !prev ||
-        Math.abs(prev.x - pt.x) > 1e-6 ||
-        Math.abs(prev.y - pt.y) > 1e-6
-      ) {
+      if (!prev || Math.abs(prev.x - pt.x) > 1e-6 || Math.abs(prev.y - pt.y) > 1e-6) {
         out.push(pt);
       }
     }

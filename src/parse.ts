@@ -1,9 +1,9 @@
 import { XMLParser } from "fast-xml-parser";
-import { adjustCenterConnectorEndpoints } from "./edge-endpoint-spacing.ts";
 import { decompressDiagramInner } from "./decompress.ts";
+import { adjustCenterConnectorEndpoints } from "./edge-endpoint-spacing.ts";
+import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 import { mxLabelToPlainText } from "./mx-label-plain.ts";
 import { inferShape, parseMxStyle } from "./parse-style.ts";
-import type { DiagramDoc, DiagramEdge, DiagramNode, DiagramPage } from "./model.ts";
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -61,10 +61,14 @@ function parseMxPoint(obj: Record<string, unknown>): { x: number; y: number } | 
 }
 
 /** 从边的 mxGeometry 提取折线点（sourcePoint → Array points → targetPoint）。 */
-function edgePointsFromGeometry(geo: Record<string, unknown> | undefined): { x: number; y: number }[] | null {
+function edgePointsFromGeometry(
+  geo: Record<string, unknown> | undefined,
+): { x: number; y: number }[] | null {
   if (!geo) return null;
 
-  const allMxPoints = asArray<Record<string, unknown>>(geo.mxPoint as Record<string, unknown> | Record<string, unknown>[]);
+  const allMxPoints = asArray<Record<string, unknown>>(
+    geo.mxPoint as Record<string, unknown> | Record<string, unknown>[],
+  );
   let source: { x: number; y: number } | undefined;
   let target: { x: number; y: number } | undefined;
   const loose: { x: number; y: number }[] = [];
@@ -82,7 +86,9 @@ function edgePointsFromGeometry(geo: Record<string, unknown> | undefined): { x: 
   const arrRaw = geo.Array;
   if (arrRaw && typeof arrRaw === "object" && !Array.isArray(arrRaw)) {
     const inner = asArray<Record<string, unknown>>(
-      (arrRaw as Record<string, unknown>).mxPoint as Record<string, unknown> | Record<string, unknown>[],
+      (arrRaw as Record<string, unknown>).mxPoint as
+        | Record<string, unknown>
+        | Record<string, unknown>[],
     );
     for (const o of inner) {
       const p = parseMxPoint(o);
@@ -118,10 +124,9 @@ function mxPointByAs(
 }
 
 /** 边标签几何：比例/中点偏移在渲染阶段用最终路径（含跳线）计算。 */
-function parseEdgeLabelFields(geo: Record<string, unknown> | undefined): Pick<
-  DiagramEdge,
-  "labelPosition" | "edgeLabelPath" | "edgeLabelMidOffset"
-> {
+function parseEdgeLabelFields(
+  geo: Record<string, unknown> | undefined,
+): Pick<DiagramEdge, "labelPosition" | "edgeLabelPath" | "edgeLabelMidOffset"> {
   const out: Pick<DiagramEdge, "labelPosition" | "edgeLabelPath" | "edgeLabelMidOffset"> = {};
   if (!geo) return out;
 
@@ -154,7 +159,9 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
   const root = modelObj.root as Record<string, unknown> | undefined;
   if (!root) return { nodes: [], edges: [] };
 
-  const cells = asArray<Record<string, unknown>>(root.mxCell as Record<string, unknown> | Record<string, unknown>[]);
+  const cells = asArray<Record<string, unknown>>(
+    root.mxCell as Record<string, unknown> | Record<string, unknown>[],
+  );
   const nodes: DiagramNode[] = [];
   const edges: DiagramEdge[] = [];
 
@@ -201,7 +208,9 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     if (strAttr(cell, "edge") !== "1") continue;
 
     const geoRaw = cell.mxGeometry;
-    const geoObj = (Array.isArray(geoRaw) ? geoRaw[0] : geoRaw) as Record<string, unknown> | undefined;
+    const geoObj = (Array.isArray(geoRaw) ? geoRaw[0] : geoRaw) as
+      | Record<string, unknown>
+      | undefined;
     let pts = edgePointsFromGeometry(geoObj);
     let usedCenterFallback = false;
 
@@ -294,7 +303,9 @@ export function parseDrawioXml(xml: string): DiagramDoc {
     throw new Error("mx2svg: missing <mxfile> root");
   }
 
-  const diagrams = asArray<Record<string, unknown>>(mxfile.diagram as Record<string, unknown> | Record<string, unknown>[]);
+  const diagrams = asArray<Record<string, unknown>>(
+    mxfile.diagram as Record<string, unknown> | Record<string, unknown>[],
+  );
   const pages: DiagramPage[] = [];
 
   for (const d of diagrams) {

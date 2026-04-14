@@ -9,6 +9,16 @@ bun install
 bun test
 ```
 
+格式化（[Biome](https://biomejs.dev/)，配置见仓库根目录 `biome.json`）：
+
+```bash
+bun run format          # 格式化并写回
+bun run format:check    # 仅检查（适合 CI）
+bun run check           # 格式化 + 整理 import（写回，本地常用）
+```
+
+编辑器可安装 Biome 官方扩展，保存时与上述规则一致；通用缩进见 `.editorconfig`。
+
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
 - **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`、`font-stack-stdout.svg`）

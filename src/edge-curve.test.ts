@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { buildCurvedEdgePathD, curvedEdgeToPolylineApprox, curvedEdgeSegments } from "./edge-curve.ts";
+import {
+  buildCurvedEdgePathD,
+  curvedEdgeSegments,
+  curvedEdgeToPolylineApprox,
+} from "./edge-curve.ts";
 
 describe("edge-curve", () => {
   test("two points: degenerate Q matches draw.io", () => {

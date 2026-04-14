@@ -1,17 +1,3 @@
-import { buildCurvedEdgePathD, curvedEdgeToPolylineApprox, isCurvedEdgeStyle } from "./edge-curve.ts";
-import {
-  buildJumpPathDAndPolyline,
-  collectJumpMap,
-  type EdgeWaypointRef,
-} from "./edge-jump.ts";
-import {
-  buildRoundedOrthogonalPathD,
-  edgePolylineForLengthAndBounds,
-  edgeRoundedArcSizeFromStyle,
-  roundedOrthogonalToPolylineApprox,
-  useRoundedOrthogonalPath,
-} from "./edge-rounded.ts";
-import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
 import {
   buildArrowMarkerDefs,
   markerEndAttr,
@@ -20,10 +6,21 @@ import {
   parseStartArrow,
 } from "./edge-arrow.ts";
 import {
-  polylinePointAtLengthFraction,
-  polylinePointWithPerpendicularOffset,
-} from "./polyline.ts";
+  buildCurvedEdgePathD,
+  curvedEdgeToPolylineApprox,
+  isCurvedEdgeStyle,
+} from "./edge-curve.ts";
+import { buildJumpPathDAndPolyline, collectJumpMap, type EdgeWaypointRef } from "./edge-jump.ts";
+import {
+  buildRoundedOrthogonalPathD,
+  edgePolylineForLengthAndBounds,
+  edgeRoundedArcSizeFromStyle,
+  roundedOrthogonalToPolylineApprox,
+  useRoundedOrthogonalPath,
+} from "./edge-rounded.ts";
+import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
 import { EMPTY_MX_STYLE, svgFontAttrString } from "./mx-font.ts";
+import { polylinePointAtLengthFraction, polylinePointWithPerpendicularOffset } from "./polyline.ts";
 import { shapePathD, vertexLabelCenter } from "./shape-path.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
 
@@ -40,7 +37,11 @@ export interface RenderOptions {
 }
 
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function colorOr(style: Map<string, string>, key: string, fallback: string): string {
@@ -50,7 +51,12 @@ function colorOr(style: Map<string, string>, key: string, fallback: string): str
 }
 
 /** draw.io `gradientDirection` → SVG objectBoundingBox 线性渐变向量 */
-function gradientDirectionToPercents(dirRaw: string): { x1: string; y1: string; x2: string; y2: string } {
+function gradientDirectionToPercents(dirRaw: string): {
+  x1: string;
+  y1: string;
+  x2: string;
+  y2: string;
+} {
   const d = (dirRaw || "south").toLowerCase().replace(/\s+/g, "");
   switch (d) {
     case "north":
@@ -115,11 +121,7 @@ interface GradientBuildContext {
   nextId: number;
 }
 
-function allocFill(
-  style: Map<string, string>,
-  baseFill: string,
-  g: GradientBuildContext,
-): string {
+function allocFill(style: Map<string, string>, baseFill: string, g: GradientBuildContext): string {
   const g2 = colorOr(style, "gradientcolor", "");
   if (!g2 || g2 === "none") {
     return esc(baseFill);
@@ -272,7 +274,10 @@ function edgeLabelPaddingPx(style: Map<string, string>): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function edgeLabelAnchor(e: DiagramEdge, metrics: { x: number; y: number }[]): { x: number; y: number } {
+function edgeLabelAnchor(
+  e: DiagramEdge,
+  metrics: { x: number; y: number }[],
+): { x: number; y: number } {
   if (metrics.length < 2) {
     return metrics[0] ?? { x: 0, y: 0 };
   }
@@ -370,7 +375,8 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: strin
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
     const softWrap = e.style.get("whitespace") === "wrap";
     const wrapBoxW =
-      e.labelWrapWidth ?? (softWrap ? Math.max(56, Math.round(fs * 6.5)) : Number.POSITIVE_INFINITY);
+      e.labelWrapWidth ??
+      (softWrap ? Math.max(56, Math.round(fs * 6.5)) : Number.POSITIVE_INFINITY);
     const displayLabel = softWrap
       ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0, e.style, defaultFontStack)
       : e.label;
@@ -528,8 +534,7 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
     .join("\n");
   const nodeLayer = page.nodes.map((n) => renderNode(n, gctx, defaultFontStack)).join("\n");
 
-  const gradientBlock =
-    gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
+  const gradientBlock = gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
   const defsInner = [buildArrowMarkerDefs(page.edges), gradientBlock].filter(Boolean).join("\n  ");
 
   return `<?xml version="1.0" encoding="UTF-8"?>

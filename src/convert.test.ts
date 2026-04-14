@@ -36,7 +36,9 @@ describe("convert", () => {
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=hexagon;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
-    expect(convert(hex)).toContain('d="M 130 80 L 190 80 L 220 110 L 190 140 L 130 140 L 100 110 Z"');
+    expect(convert(hex)).toContain(
+      'd="M 130 80 L 190 80 L 220 110 L 190 140 L 130 140 L 100 110 Z"',
+    );
     const para = minimalMxfile.replace(
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=parallelogram;fillColor=#dae8fc;strokeColor=#6c8ebf;",
@@ -185,11 +187,16 @@ describe("convert", () => {
         "endArrow=classic;strokeColor=#82b366;spacing=12;",
       );
     const flatGeo = '<mxGeometry x="100" y="80" width="120" height="60" as="geometry"/>';
-    const rotGeo = '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>';
+    const rotGeo =
+      '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>';
     const firstPolylinePoint = (svg: string): string =>
-      svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]?.match(/points="([^"]+)"/)?.[1]?.split(/\s+/)?.[0] ??
-      "";
-    expect(firstPolylinePoint(convert(base.replace(flatGeo, rotGeo)))).not.toBe(firstPolylinePoint(convert(base)));
+      svg
+        .match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]
+        ?.match(/points="([^"]+)"/)?.[1]
+        ?.split(/\s+/)?.[0] ?? "";
+    expect(firstPolylinePoint(convert(base.replace(flatGeo, rotGeo)))).not.toBe(
+      firstPolylinePoint(convert(base)),
+    );
   });
 
   test("edge spacing from rhombus source differs from rect source polyline start", () => {
@@ -207,8 +214,10 @@ describe("convert", () => {
       "endArrow=classic;strokeColor=#82b366;spacing=12;",
     );
     const firstPolylinePoint = (svg: string): string =>
-      svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]?.match(/points="([^"]+)"/)?.[1]?.split(/\s+/)?.[0] ??
-      "";
+      svg
+        .match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]
+        ?.match(/points="([^"]+)"/)?.[1]
+        ?.split(/\s+/)?.[0] ?? "";
     expect(firstPolylinePoint(convert(rhombusXml))).not.toBe(firstPolylinePoint(convert(rectXml)));
   });
 
@@ -256,7 +265,10 @@ describe("convert", () => {
         '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
         '<mxCell id="4" value="aa bb cc dd ee ff gg hh ii" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;whiteSpace=wrap;fontSize=11;">',
       )
-      .replace('<mxGeometry relative="1" as="geometry"/>', '<mxGeometry relative="1" width="52" height="40" as="geometry"/>');
+      .replace(
+        '<mxGeometry relative="1" as="geometry"/>',
+        '<mxGeometry relative="1" width="52" height="40" as="geometry"/>',
+      );
     const svg = convert(xml);
     const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
     expect((inner.match(/<tspan/g) ?? []).length).toBeGreaterThan(1);
@@ -428,19 +440,13 @@ describe("convert", () => {
   });
 
   test("vertex dashed stroke uses stroke-dasharray", () => {
-    const xml = minimalMxfile.replace(
-      "strokeColor=#6c8ebf;",
-      "strokeColor=#6c8ebf;dashed=1;",
-    );
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;dashed=1;");
     const svg = convert(xml);
     expect(svg).toContain('stroke-dasharray="6 4"');
   });
 
   test("vertex multiline value renders tspans with distinct y", () => {
-    const xml = minimalMxfile.replace(
-      'value="Hello"',
-      'value="Line1&lt;br/&gt;Line2"',
-    );
+    const xml = minimalMxfile.replace('value="Hello"', 'value="Line1&lt;br/&gt;Line2"');
     const svg = convert(xml);
     expect(svg).toContain("<tspan");
     expect(svg).toContain("Line1");
@@ -477,30 +483,21 @@ describe("convert", () => {
   });
 
   test("vertex fontStyle=1 sets font-weight bold on label", () => {
-    const xml = minimalMxfile.replace(
-      "strokeColor=#6c8ebf;",
-      "strokeColor=#6c8ebf;fontStyle=1;",
-    );
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;fontStyle=1;");
     const svg = convert(xml);
     expect(svg).toContain('font-weight="bold"');
     expect(svg).not.toContain('font-style="italic"');
   });
 
   test("vertex fontStyle=2 sets font-style italic", () => {
-    const xml = minimalMxfile.replace(
-      "strokeColor=#6c8ebf;",
-      "strokeColor=#6c8ebf;fontStyle=2;",
-    );
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;fontStyle=2;");
     const svg = convert(xml);
     expect(svg).toContain('font-style="italic"');
     expect(svg).not.toContain('font-weight="bold"');
   });
 
   test("vertex fontStyle=3 sets bold and italic", () => {
-    const xml = minimalMxfile.replace(
-      "strokeColor=#6c8ebf;",
-      "strokeColor=#6c8ebf;fontStyle=3;",
-    );
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;fontStyle=3;");
     const svg = convert(xml);
     expect(svg).toContain('font-weight="bold"');
     expect(svg).toContain('font-style="italic"');
@@ -551,8 +548,8 @@ describe("convert", () => {
     expect(svg).toContain("<linearGradient");
     expect(svg).toContain('x1="0%"');
     expect(svg).toContain('x2="100%"');
-    expect(svg).toContain("stop-color=\"#dae8fc\"");
-    expect(svg).toContain("stop-color=\"#ffffff\"");
+    expect(svg).toContain('stop-color="#dae8fc"');
+    expect(svg).toContain('stop-color="#ffffff"');
     expect(svg).toMatch(/fill="url\(#mx2svg-g-\d+\)"/);
   });
 });

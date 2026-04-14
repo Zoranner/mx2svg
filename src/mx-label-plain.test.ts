@@ -5,7 +5,7 @@ describe("mxLabelToPlainText", () => {
   test("strips block wrappers and keeps inner text", () => {
     expect(mxLabelToPlainText("<p>Hello</p>")).toBe("Hello");
     expect(mxLabelToPlainText('<div class="x">Hi</div>')).toBe("Hi");
-    expect(mxLabelToPlainText("<font face=\"Arial\">X</font>")).toBe("X");
+    expect(mxLabelToPlainText('<font face="Arial">X</font>')).toBe("X");
   });
 
   test("decodes entities before stripping tags", () => {
