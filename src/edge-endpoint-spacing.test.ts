@@ -39,6 +39,19 @@ describe("adjustCenterConnectorEndpoints", () => {
     expect(p0.x).toBeGreaterThan(160);
   });
 
+  test("rhombus perimeter differs from same-bbox rect", () => {
+    const b = node({ id: "b", x: 300, y: 80, width: 80, height: 80 });
+    const cA = { x: 160, y: 110 };
+    const cB = { x: 340, y: 120 };
+    const rhom = node({ id: "a", x: 100, y: 80, width: 120, height: 60, shape: "rhombus" });
+    const rect = node({ id: "a", x: 100, y: 80, width: 120, height: 60, shape: "rect" });
+    const pRhom = adjustCenterConnectorEndpoints(cA, cB, rhom, b, 10);
+    const pRect = adjustCenterConnectorEndpoints(cA, cB, rect, b, 10);
+    expect(pRhom).not.toBeNull();
+    expect(pRect).not.toBeNull();
+    expect(Math.abs(pRhom![0].x - pRect![0].x)).toBeGreaterThan(0.5);
+  });
+
   test("rotated rect perimeter differs from rotation=0", () => {
     const b = node({ id: "b", x: 300, y: 80, width: 80, height: 80 });
     const cA = { x: 160, y: 110 };

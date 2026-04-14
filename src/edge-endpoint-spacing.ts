@@ -1,4 +1,5 @@
 import type { DiagramNode } from "./model.ts";
+import { worldConvexPolygonOutline } from "./shape-outline.ts";
 
 /**
  * `spacing` 样式：在「仅有源/目标中心点」的边上，将端点从中心改为沿指向对端的射线穿出本形状周界，再沿连线偏移 `spacing`（像素），
@@ -55,7 +56,6 @@ function rectBoundaryExitT(
   return best;
 }
 
-/** 未旋转椭圆边界：线段从 `from` 穿出 toward方向，取 (0,1] 内最小正根。 */
 /** 页面坐标 → 以单元格中心为原点、逆旋转后的局部坐标（y 向下，矩形为 [-w/2,w/2]×[-h/2,h/2]）。 */
 function worldToLocalCentered(p: { x: number; y: number }, n: DiagramNode): { x: number; y: number } {
   const rcx = n.x + n.width / 2;
@@ -96,17 +96,62 @@ function ellipseBoundaryExitT(from: { x: number; y: number }, toward: { x: numbe
   return best;
 }
 
+/** 线段 from—toward 与线段 a—b 相交时，在 from—toward 上的参数 t（0<t≤1）。 */
+function chordOpenEdgeIntersectionT(
+  from: { x: number; y: number },
+  toward: { x: number; y: number },
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): number | null {
+  const dx1 = toward.x - from.x;
+  const dy1 = toward.y - from.y;
+  const dx2 = b.x - a.x;
+  const dy2 = b.y - a.y;
+  const cross = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(cross) < 1e-12) return null;
+  const dx3 = a.x - from.x;
+  const dy3 = a.y - from.y;
+  const t = (dx3 * dy2 - dy3 * dx2) / cross;
+  const u = (dx3 * dy1 - dy3 * dx1) / cross;
+  if (t <= 1e-9 || t > 1 || u < -1e-8 || u > 1 + 1e-8) return null;
+  return t;
+}
+
+function polygonBoundaryExitT(
+  from: { x: number; y: number },
+  toward: { x: number; y: number },
+  verts: { x: number; y: number }[],
+): number | null {
+  if (verts.length < 3) return null;
+  let best: number | null = null;
+  const nv = verts.length;
+  for (let i = 0; i < nv; i++) {
+    const a = verts[i]!;
+    const b = verts[(i + 1) % nv]!;
+    const t = chordOpenEdgeIntersectionT(from, toward, a, b);
+    if (t != null && (best === null || t < best)) best = t;
+  }
+  return best;
+}
+
 function perimeterExitT(from: { x: number; y: number }, toward: { x: number; y: number }, n: DiagramNode): number | null {
+  if (n.shape === "ellipse" && n.rotation === 0) {
+    return ellipseBoundaryExitT(from, toward, n);
+  }
+  if (n.shape === "ellipse" && n.rotation !== 0) {
+    return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
+  }
+
+  const poly = worldConvexPolygonOutline(n);
+  if (poly) {
+    const t = polygonBoundaryExitT(from, toward, poly);
+    if (t != null) return t;
+  }
+
   if (n.rotation !== 0) {
-    if (n.shape === "ellipse") {
-      return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
-    }
     const fromL = worldToLocalCentered(from, n);
     const towardL = worldToLocalCentered(toward, n);
     return rectBoundaryExitT(fromL, towardL, -n.width / 2, -n.height / 2, n.width, n.height);
-  }
-  if (n.shape === "ellipse") {
-    return ellipseBoundaryExitT(from, toward, n);
   }
   return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
 }
