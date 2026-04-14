@@ -17,6 +17,13 @@ export function parseEdgeLabelAlignV(style: Map<string, string>): EdgeLabelAlign
   return "middle";
 }
 
+/** 与测宽 `tw` 及块中心 `tcx` 配合，映射为 SVG `text-anchor`。 */
+export function edgeLabelSvgTextAnchor(ah: EdgeLabelAlignH): "start" | "middle" | "end" {
+  if (ah === "left") return "start";
+  if (ah === "right") return "end";
+  return "middle";
+}
+
 /**
  * 锚点（路径上的几何点）与标签内容包围盒 tw×th：根据对齐方式得到**内容块中心**，
  * 用于 `text-anchor="middle"` 下单行/多行栈的几何中心。

@@ -274,6 +274,21 @@ describe("convert", () => {
     expect((inner.match(/<tspan/g) ?? []).length).toBeGreaterThan(1);
   });
 
+  test("edge label whiteSpace=wrap with align=left uses text-anchor start on multiline", () => {
+    const xml = minimalMxfile
+      .replace(
+        '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+        '<mxCell id="4" value="aa bb cc dd ee ff gg hh ii" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;whiteSpace=wrap;fontSize=11;align=left;">',
+      )
+      .replace(
+        '<mxGeometry relative="1" as="geometry"/>',
+        '<mxGeometry relative="1" width="52" height="40" as="geometry"/>',
+      );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect((inner.match(/<tspan/g) ?? []).length).toBeGreaterThan(1);
+    expect(inner).toMatch(/text-anchor="start"/);
+  });
+
   test("renders edge label at midpoint of polyline with contrast stroke", () => {
     const xml = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
@@ -286,7 +301,7 @@ describe("convert", () => {
     expect(svg).toContain('paint-order="stroke fill"');
   });
 
-  test("edge label align=left moves text right of default center; align=right moves left", () => {
+  test("edge label align=left and align=right set text-anchor start and end", () => {
     const base = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
       '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;">',
@@ -296,11 +311,9 @@ describe("convert", () => {
     const innerC = convert(base).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
     const innerL = convert(left).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
     const innerR = convert(right).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
-    const xC = Number(innerC.match(/<text[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
-    const xL = Number(innerL.match(/<text[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
-    const xR = Number(innerR.match(/<text[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
-    expect(xL).toBeGreaterThan(xC);
-    expect(xR).toBeLessThan(xC);
+    expect(innerC).toMatch(/text-anchor="middle"/);
+    expect(innerL).toMatch(/text-anchor="start"/);
+    expect(innerR).toMatch(/text-anchor="end"/);
   });
 
   test("edge label verticalAlign=top moves text down; verticalAlign=bottom moves up", () => {

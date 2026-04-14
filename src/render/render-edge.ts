@@ -10,6 +10,7 @@ import { edgeLabelAnchor } from "./edge-label-anchor.ts";
 import {
   edgeLabelBackgroundLayout,
   edgeLabelContentCenter,
+  edgeLabelSvgTextAnchor,
   parseEdgeLabelAlignH,
   parseEdgeLabelAlignV,
 } from "./edge-label-layout.ts";
@@ -82,6 +83,8 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
         fill: labelFill,
         style: e.style,
         defaultFontStack,
+        textAnchor: edgeLabelSvgTextAnchor(ah),
+        contentWidth: tw,
       }),
     );
   }

@@ -120,7 +120,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 - **边标签折行**：**`whiteSpace=wrap`** 时以 **`mxGeometry` 的 `width`（>0）** 为最大行宽；否则用与字号相关的默认宽。
 - **`labelPadding`**：沿路径法向叠加（与比例 label 的 **`y`**、**`relative`** 中点偏移同向）；**绝对 label 坐标**（**`x` ∉ [0,1]**）不做法向叠加。
 - **`labelBackgroundColor`**：圆角衬底；有衬底时不再加白色描边晕圈。
-- **`align` / `verticalAlign`**（style 解析为小写键 **`align`**、**`verticalalign`**）：相对路径锚点布置标签内容盒。水平 **`left` / `center` / `right`**（默认 **`center`**）；垂直 **`top` / `middle` / `bottom`**（默认 **`middle`**）。无衬底时平移文字块中心；有衬底时平移圆角矩形，文字仍在衬底内居中。
+- **`align` / `verticalAlign`**（style 解析为小写键 **`align`**、**`verticalalign`**）：相对路径锚点布置标签内容盒。水平 **`left` / `center` / `right`**（默认 **`center`**）；垂直 **`top` / `middle` / `bottom`**（默认 **`middle`**）。无衬底时平移文字块中心；有衬底时平移圆角矩形，文字仍在衬底内居中。多行时水平对齐还映射为 SVG **`text-anchor`**（`start` / `middle` / `end`），各行相对块中心左齐、居中或右齐。
 
 ### 标签与文本
 
