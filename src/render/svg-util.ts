@@ -159,6 +159,36 @@ export function vertexLineStrokeCapAttr(style: Map<string, string>, defaultCap: 
   return ` stroke-linecap="${cap}"`;
 }
 
+/**
+ * **`strokeMiterlimit`** / **`miterLimit`**（键 **`strokemiterlimit`** 或 **`miterlimit`**），在 **`linejoin=miter`** 时影响尖角；设了即输出。
+ */
+export function strokeMiterlimitAttr(style: Map<string, string>): string {
+  const raw = style.get("strokemiterlimit") ?? style.get("miterlimit");
+  if (raw == null || raw === "") return "";
+  const v = Number(raw);
+  if (!Number.isFinite(v) || v <= 0) return "";
+  return ` stroke-miterlimit="${v}"`;
+}
+
+/** **`labelBorderColor`** / **`labelBorderWidth`**（键 **`labelbordercolor`**、**`labelborderwidth`**），用于标签衬底矩形描边。 */
+export function labelBackgroundStrokeAttrs(style: Map<string, string>): string {
+  const bc = style.get("labelbordercolor");
+  if (!bc || bc === "none") return "";
+  const bwRaw = style.get("labelborderwidth");
+  let bw = 1;
+  if (bwRaw != null && bwRaw !== "") {
+    const n = Number(bwRaw);
+    if (Number.isFinite(n) && n > 0) bw = n;
+  }
+  return ` stroke="${esc(bc)}" stroke-width="${bw}"`;
+}
+
+/** draw.io **`double=1`**：双线框（矩形/椭圆）。 */
+export function mxStyleDoubleEnabled(style: Map<string, string>): boolean {
+  const v = style.get("double");
+  return v === "1" || v === "true";
+}
+
 /** 矩形圆角：`rounded=1` 为比例圆角；`rounded=N` 为像素半径；`rounded=0` 关闭。 */
 export function rectCornerRadius(style: Map<string, string>, w: number, h: number): number {
   const r = style.get("rounded");

@@ -372,6 +372,15 @@ describe("convert", () => {
     expect(inner).not.toContain("paint-order");
   });
 
+  test("edge labelBorderColor adds stroke to label background rect", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="edge cap" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;labelBackgroundColor=#e1d5e7;labelBorderColor=#333333;">',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/fill="#e1d5e7"[^>]*stroke="#333333"/);
+  });
+
   test("edge label uses mxGeometry x y offset from midpoint when relative=1", () => {
     const xml = minimalMxfile
       .replace(
@@ -556,6 +565,32 @@ describe("convert", () => {
     expect(svg).toMatch(/<rect[^>]*rx="4"[^>]*ry="4"[^>]*fill="#e1d5e7"/);
   });
 
+  test("vertex labelBorderColor adds stroke to label background rect", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;labelBackgroundColor=#e1d5e7;labelBorderColor=#000000;labelBorderWidth=2;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/fill="#e1d5e7"[^>]*stroke="#000000"[^>]*stroke-width="2"/);
+  });
+
+  test("vertex double=1 on default rect draws fill-only rect and two stroke rects", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;double=1;");
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect((inner.match(/<rect/g) ?? []).length).toBe(3);
+    expect(inner).toContain('stroke="none"');
+    expect((inner.match(/fill="none"/g) ?? []).length).toBe(2);
+  });
+
+  test("vertex double=1 on ellipse draws fill-only ellipse and two stroke ellipses", () => {
+    const xml = minimalMxfile.replace(
+      "ellipse;fillColor=#fff2cc;strokeColor=#d6b656;",
+      "ellipse;fillColor=#fff2cc;strokeColor=#d6b656;double=1;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="3"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect((inner.match(/<ellipse/g) ?? []).length).toBe(3);
+  });
+
   test("vertex label align=left sets text-anchor start", () => {
     const xml = minimalMxfile.replace(
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
@@ -685,6 +720,16 @@ describe("convert", () => {
     );
     const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
     expect(inner).toMatch(/stroke-linejoin="bevel"/);
+  });
+
+  test("edge miterLimit maps to stroke-miterlimit when linejoin=miter", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;linejoin=miter;miterLimit=12;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/stroke-linejoin="miter"/);
+    expect(inner).toMatch(/stroke-miterlimit="12"/);
   });
 
   test("vertex linecap=square on rect stroke", () => {

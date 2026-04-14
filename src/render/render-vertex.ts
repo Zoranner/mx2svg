@@ -16,8 +16,11 @@ import {
   esc,
   fillOpacityAttr,
   groupOpacityAttr,
+  labelBackgroundStrokeAttrs,
+  mxStyleDoubleEnabled,
   rectCornerRadius,
   strokeDashAttr,
+  strokeMiterlimitAttr,
   strokeOpacityAttr,
   vertexLineStrokeCapAttr,
   vertexOptionalStrokeCapJoinAttr,
@@ -39,6 +42,8 @@ export function renderVertex(
   const strokeOp = strokeOpacityAttr(n.style);
   const paint2d = `${fillOp}${strokeOp}`;
   const parts: string[] = [];
+  const miterAttr = strokeMiterlimitAttr(n.style);
+  const isDouble = mxStyleDoubleEnabled(n.style);
 
   const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height, n.style);
   const pathCapJoin = vertexPathStrokeCapJoinAttr(n.style);
@@ -47,7 +52,7 @@ export function renderVertex(
 
   if (pathD) {
     parts.push(
-      `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${pathCapJoin}${dashAttr}${paint2d}/>`,
+      `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${pathCapJoin}${dashAttr}${paint2d}${miterAttr}/>`,
     );
   } else if (n.shape === "internalStorage") {
     const rounded = n.style.get("rounded") === "1" || n.style.get("rounded") === "true";
@@ -62,7 +67,7 @@ export function renderVertex(
     parts.push(
       `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
         stroke,
-      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}/>`,
+      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
     );
     const lineStroke = esc(stroke);
     parts.push(
@@ -76,16 +81,57 @@ export function renderVertex(
     const cy = n.y + n.height / 2;
     const rx = n.width / 2;
     const ry = n.height / 2;
-    parts.push(
-      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}${shapeCapJoin}${paint2d}/>`,
-    );
+    const strokeOnlyExtras = `${dashAttr}${shapeCapJoin}${strokeOp}${miterAttr}`;
+    if (isDouble) {
+      const inset = Math.max(2, sw);
+      const irx = Math.max(0, rx - inset);
+      const iry = Math.max(0, ry - inset);
+      parts.push(
+        `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="none"${fillOp}/>`,
+      );
+      parts.push(
+        `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${esc(stroke)}" stroke-width="${sw}"${strokeOnlyExtras}/>`,
+      );
+      if (irx > 0 && iry > 0) {
+        parts.push(
+          `<ellipse cx="${cx}" cy="${cy}" rx="${irx}" ry="${iry}" fill="none" stroke="${esc(stroke)}" stroke-width="${sw}"${strokeOnlyExtras}/>`,
+        );
+      }
+    } else {
+      parts.push(
+        `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
+      );
+    }
   } else {
     const rx = rectCornerRadius(n.style, n.width, n.height);
-    parts.push(
-      `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
-        stroke,
-      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}/>`,
-    );
+    const strokeOnlyExtras = `${dashAttr}${shapeCapJoin}${strokeOp}${miterAttr}`;
+    if (isDouble) {
+      const inset = Math.max(2, sw);
+      const rxIn = Math.max(0, rx > 0 ? rx - inset : 0);
+      const iw = Math.max(0, n.width - 2 * inset);
+      const ih = Math.max(0, n.height - 2 * inset);
+      parts.push(
+        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="none"${fillOp}/>`,
+      );
+      parts.push(
+        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="none" stroke="${esc(
+          stroke,
+        )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${strokeOnlyExtras}/>`,
+      );
+      if (iw > 0 && ih > 0) {
+        parts.push(
+          `<rect x="${n.x + inset}" y="${n.y + inset}" width="${iw}" height="${ih}" fill="none" stroke="${esc(
+            stroke,
+          )}" stroke-width="${sw}" rx="${rxIn}" ry="${rxIn}"${strokeOnlyExtras}/>`,
+        );
+      }
+    } else {
+      parts.push(
+        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
+          stroke,
+        )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
+      );
+    }
   }
 
   if (n.label.trim()) {
@@ -124,7 +170,7 @@ export function renderVertex(
       tcx = lay.tcx;
       tcy = lay.tcy;
       parts.push(
-        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOp}/>`,
+        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOp}${labelBackgroundStrokeAttrs(n.style)}/>`,
       );
     } else {
       const c = edgeLabelContentCenter(anchor, tw, th, ah, av);

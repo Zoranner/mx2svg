@@ -22,7 +22,9 @@ import {
   esc,
   fillOpacityAttr,
   groupOpacityAttr,
+  labelBackgroundStrokeAttrs,
   strokeDashAttr,
+  strokeMiterlimitAttr,
   strokeOpacityAttr,
 } from "./svg-util.ts";
 
@@ -34,6 +36,7 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
   const markerEnd = markerEndAttr(parseEndArrow(e.style), stroke);
   const markerStart = markerStartAttr(parseStartArrow(e.style), stroke);
   const strokeOp = strokeOpacityAttr(e.style);
+  const miterAttr = strokeMiterlimitAttr(e.style);
 
   const pathD = m.pathD;
   const capJoin = edgeStrokeCapJoinAttr(e.style);
@@ -41,10 +44,10 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
     pathD != null
       ? `<path d="${esc(pathD)}" fill="none" stroke="${esc(
           stroke,
-        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`
+        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${miterAttr}${markerStart}${markerEnd}/>`
       : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
           stroke,
-        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`;
+        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${miterAttr}${markerStart}${markerEnd}/>`;
 
   const parts: string[] = [lineEl];
 
@@ -80,7 +83,7 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
       tcx = lay.tcx;
       tcy = lay.tcy;
       parts.push(
-        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOpacityAttr(e.style)}/>`,
+        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOpacityAttr(e.style)}${labelBackgroundStrokeAttrs(e.style)}/>`,
       );
     } else {
       const c = edgeLabelContentCenter(anchor, tw, th, ah, av);
