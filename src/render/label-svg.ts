@@ -1,4 +1,9 @@
-import { EMPTY_MX_STYLE, mxStyleLabelLineHeightPx, svgFontAttrString } from "../text/mx-font.ts";
+import {
+  EMPTY_MX_STYLE,
+  mxLabelMultilineVisualCenterDyPx,
+  mxStyleLabelLineHeightPx,
+  svgFontAttrString,
+} from "../text/mx-font.ts";
 import { esc, textFillOpacityAttr } from "./svg-util.ts";
 
 export interface LabelBlockOpts {
@@ -55,7 +60,8 @@ export function renderSvgLabelBlock(
     )}</text>`;
   }
 
-  const yFirst = cy - ((lines.length - 1) * lh) / 2;
+  const baselineMidDy = mxLabelMultilineVisualCenterDyPx(fs, st, opts?.defaultFontStack);
+  const yFirst = cy - ((lines.length - 1) * lh) / 2 + baselineMidDy;
   const tspans = lines
     .map((line, i) => `<tspan x="${xRef}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
     .join("");

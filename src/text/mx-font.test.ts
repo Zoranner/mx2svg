@@ -5,6 +5,7 @@ import {
   MX_FONT_ITALIC,
   MX_FONT_UNDERLINE,
   mxFontStyleBits,
+  mxLabelMultilineVisualCenterDyPx,
   svgFontAttrString,
   svgFontStack,
 } from "./mx-font.ts";
@@ -55,6 +56,12 @@ describe("mx-font", () => {
   test("svgFontAttrString emits letter-spacing when letterSpacing is numeric", () => {
     const s = svgFontAttrString(style({ letterSpacing: "2.5" }), esc);
     expect(s).toContain('letter-spacing="2.5"');
+  });
+
+  test("mxLabelMultilineVisualCenterDyPx is positive for typical Latin metrics", () => {
+    const dy = mxLabelMultilineVisualCenterDyPx(12, new Map());
+    expect(dy).toBeGreaterThan(0);
+    expect(dy).toBeLessThan(12);
   });
 
   test("canvasFontString order matches CSS font shorthand", () => {

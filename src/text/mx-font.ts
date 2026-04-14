@@ -1,3 +1,5 @@
+import { createCanvas } from "@napi-rs/canvas";
+
 /**
  * draw.io / mxGraph 样式中的字体：与 mxConstants 一致。
  * - FONT_BOLD = 1
@@ -69,6 +71,34 @@ export function mxStyleLabelLineHeightPx(fontSizePx: number, style: Map<string, 
   if (n <= 4) return fontSizePx * n;
   if (n <= 500) return (fontSizePx * n) / 100;
   return fontSizePx * 1.2;
+}
+
+/**
+ * 多行标签：`tspan` 的 **`y`** 是 **alphabetic baseline**。若仅把「基线梯」的中点对准 **`cy`**，
+ * 整段字形相对单行 **`dominant-baseline="middle"`**（em 中点）会**偏上**。
+ * 将返回值加到第一行基线的 **`y`** 上，使墨迹垂直中心与 **`cy`** 对齐。
+ */
+export function mxLabelMultilineVisualCenterDyPx(
+  fontSizePx: number,
+  style: Map<string, string>,
+  defaultFontStack?: string,
+): number {
+  const canvas = createCanvas(32, 32);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return fontSizePx * 0.25;
+  ctx.font = canvasFontString(fontSizePx, style, defaultFontStack);
+  const m = ctx.measureText("M");
+  let asc = m.actualBoundingBoxAscent;
+  let desc = m.actualBoundingBoxDescent;
+  if (!Number.isFinite(asc) || !Number.isFinite(desc) || (asc <= 0 && desc <= 0)) {
+    const ext = m as TextMetrics & {
+      fontBoundingBoxAscent?: number;
+      fontBoundingBoxDescent?: number;
+    };
+    asc = ext.fontBoundingBoxAscent ?? fontSizePx * 0.74;
+    desc = ext.fontBoundingBoxDescent ?? fontSizePx * 0.26;
+  }
+  return (asc - desc) / 2;
 }
 
 /** 写入 `<text>` 的字体相关属性（已 XML 转义）。 */
