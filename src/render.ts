@@ -16,7 +16,7 @@ import {
   polylinePointAtLengthFraction,
   polylinePointWithPerpendicularOffset,
 } from "./polyline.ts";
-import { shapePathD } from "./shape-path.ts";
+import { shapePathD, vertexLabelCenter } from "./shape-path.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
 
 export interface RenderOptions {
@@ -389,8 +389,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   }
 
   if (n.label.trim()) {
-    const tx = n.x + n.width / 2;
-    const ty = n.y + n.height / 2;
+    const { cx: tx, cy: ty } = vertexLabelCenter(n.shape, n.x, n.y, n.width, n.height, n.style);
     const labelInset = 8;
     const softWrap = n.style.get("whitespace") === "wrap";
     const wrap = softWrap ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset) : n.label;

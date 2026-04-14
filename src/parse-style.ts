@@ -62,6 +62,9 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "document" || style.has("document")) {
     return "document";
   }
+  if (s === "pentagon" || style.has("pentagon")) {
+    return "pentagon";
+  }
 
   return "rect";
 }

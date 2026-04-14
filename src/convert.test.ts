@@ -110,6 +110,31 @@ describe("convert", () => {
     expect(svg).toMatch(/M 100 80 L 220 80 L 220 132\.5/);
   });
 
+  test("shape document places label center above full box center", () => {
+    const svg = convert(
+      minimalMxfile.replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=document;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      ),
+    );
+    expect(svg).toContain("Hello");
+    expect(svg).toContain('y="101"');
+    expect(svg).not.toContain('y="110"');
+  });
+
+  test("shape pentagon renders five-sided path", () => {
+    const svg = convert(
+      minimalMxfile.replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=pentagon;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      ),
+    );
+    expect(svg).toContain("<path ");
+    const ds = [...svg.matchAll(/d="([^"]+)"/g)].map((x) => x[1]);
+    const pent = ds.find((d) => (d.match(/ L /g) ?? []).length === 4 && d.endsWith(" Z"));
+    expect(pent).toBeDefined();
+  });
+
   test("shape triangle direction south flips apex", () => {
     const xml = minimalMxfile.replace(
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",

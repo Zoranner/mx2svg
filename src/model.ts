@@ -12,7 +12,8 @@ export type NodeShape =
   | "triangle"
   | "trapezoid"
   | "cloud"
-  | "document";
+  | "document"
+  | "pentagon";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

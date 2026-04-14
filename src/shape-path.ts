@@ -1,5 +1,30 @@
 import type { NodeShape } from "./model.ts";
 
+/** `document` 底部波浪占用高度（与 `shapePathD` 中 `size` 语义一致）。 */
+export function documentWaveDy(h: number, style: Map<string, string> | undefined): number {
+  const raw = style?.get("size");
+  let size = raw != null && raw !== "" ? Number(raw) : 0.3;
+  if (!Number.isFinite(size)) size = 0.3;
+  size = Math.max(0, Math.min(1, size));
+  return h * size;
+}
+
+/** 顶点文字锚点（几何中心）；`document` 为折痕上方区域中心，与 draw.io 标签框一致。 */
+export function vertexLabelCenter(
+  shape: NodeShape,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  style: Map<string, string>,
+): { cx: number; cy: number } {
+  if (shape === "document") {
+    const dy = documentWaveDy(h, style);
+    return { cx: x + w / 2, cy: y + (h - dy) / 2 };
+  }
+  return { cx: x + w / 2, cy: y + h / 2 };
+}
+
 /** 与 bbox 对齐的简单 path（绝对坐标），供 `shape=*` 顶点填充与描边。 */
 export function shapePathD(
   shape: NodeShape,
@@ -64,12 +89,20 @@ export function shapePathD(
       );
     }
     /** 流程图文档：底部波浪；`size` 为底褶高度占高度比例（draw.io 默认约 0.3）。 */
+    case "pentagon": {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const rx = w * 0.45;
+      const ry = h * 0.45;
+      const pts: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const theta = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+        pts.push(`${cx + rx * Math.cos(theta)} ${cy + ry * Math.sin(theta)}`);
+      }
+      return `M ${pts.join(" L ")} Z`;
+    }
     case "document": {
-      const raw = style?.get("size");
-      let size = raw != null && raw !== "" ? Number(raw) : 0.3;
-      if (!Number.isFinite(size)) size = 0.3;
-      size = Math.max(0, Math.min(1, size));
-      const dy = h * size;
+      const dy = documentWaveDy(h, style);
       const fy = 1.4;
       return (
         `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h - dy / 2}` +
