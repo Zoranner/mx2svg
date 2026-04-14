@@ -13,6 +13,13 @@ import {
 } from "./edge-rounded.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
 import {
+  ARROW_MARKER_DEFS,
+  markerEndAttr,
+  markerStartAttr,
+  parseEndArrow,
+  parseStartArrow,
+} from "./edge-arrow.ts";
+import {
   polylinePointAtLengthFraction,
   polylinePointWithPerpendicularOffset,
 } from "./polyline.ts";
@@ -311,28 +318,13 @@ function renderSvgLabelBlock(
   return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="${fill}"${halo}>${tspans}</text>`;
 }
 
-function wantsArrowEnd(style: Map<string, string>): boolean {
-  const v = (style.get("endarrow") ?? "classic").toLowerCase();
-  return v !== "none" && v !== "open" && v !== "oval" && v !== "diamond";
-}
-
-/** 仅当显式设置 `startArrow`且非 none/open 等时绘制（与 draw.io 默认无端箭头一致）。 */
-function wantsArrowStart(style: Map<string, string>): boolean {
-  const v = style.get("startarrow");
-  if (v === undefined) return false;
-  const l = v.toLowerCase();
-  return l !== "none" && l !== "" && l !== "open" && l !== "oval" && l !== "diamond";
-}
-
 function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
   const dashAttr = strokeDashAttr(e.style);
-  const arrowEnd = wantsArrowEnd(e.style);
-  const arrowStart = wantsArrowStart(e.style);
-  const markerEnd = arrowEnd ? ' marker-end="url(#mx2svg-arrow-end)"' : "";
-  const markerStart = arrowStart ? ' marker-start="url(#mx2svg-arrow-start)"' : "";
+  const markerEnd = markerEndAttr(parseEndArrow(e.style));
+  const markerStart = markerStartAttr(parseStartArrow(e.style));
 
   const pathD = m.pathD;
   const lineEl =
@@ -446,13 +438,6 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   return `<g data-mx2svg-id="${esc(n.id)}">${inner}</g>`;
 }
 
-const ARROW_DEFS = `<marker id="mx2svg-arrow-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
- <path d="M 0 0 L 10 5 L 0 10 z" fill="#333333"/>
-  </marker>
-  <marker id="mx2svg-arrow-start" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="userSpaceOnUse">
- <path d="M 10 0 L 0 5 L 10 10 z" fill="#333333"/>
-  </marker>`;
-
 export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): string {
   const pageIndex = options.pageIndex ?? 0;
   const pad = options.padding ?? 8;
@@ -476,7 +461,7 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
 
   const gradientBlock =
     gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
-  const defsInner = [ARROW_DEFS, gradientBlock].filter(Boolean).join("\n  ");
+  const defsInner = [ARROW_MARKER_DEFS, gradientBlock].filter(Boolean).join("\n  ");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}">

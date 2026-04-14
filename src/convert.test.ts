@@ -186,6 +186,34 @@ describe("convert", () => {
     expect(svg).toContain("marker-end");
   });
 
+  test("endArrow=open uses stroked chevron marker", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=open;strokeColor=#82b366;",
+    );
+    expect(convert(xml)).toContain('marker-end="url(#mx2svg-arrow-open-end)"');
+  });
+
+  test("endArrow=none omits marker-end on edge geometry", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=none;strokeColor=#82b366;",
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).not.toContain("marker-end");
+  });
+
+  test("startArrow=open with endArrow=open uses both open markers", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "startArrow=open;endArrow=open;strokeColor=#82b366;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-start="url(#mx2svg-arrow-open-start)"');
+    expect(svg).toContain('marker-end="url(#mx2svg-arrow-open-end)"');
+  });
+
   test("renders edge label at midpoint of polyline with contrast stroke", () => {
     const xml = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
