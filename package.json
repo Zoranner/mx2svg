@@ -11,6 +11,8 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.5",
+    "@napi-rs/canvas": "^0.1.97",
     "fast-xml-parser": "^5.2.5",
     "pako": "^2.1.0"
   },

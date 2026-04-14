@@ -10,7 +10,7 @@
 - **边**（阶段 2+）：`edge="1"`，从 `mxGeometry` 的 `sourcePoint` / `Array` 中间点 / `targetPoint` 取折线；若无点但有 `source`+`target`，则连接两顶点中心。支持 `dashed`、`endArrow`（默认三角箭头，可为 `none`/`open` 等）、显式 **`startArrow`**（非 `none` 时在路径起点画三角箭头）。**边标签**（`value`）默认在折线 **总长中点**；若存在 **`mxPoint as="label"`** 且 **`x` 在 [0,1]**，则按该比例取路径上一点并做法向 **`y`** 像素偏移；若 **`relative=1`** 且 geometry 带 **`x`/`y`**，则视为相对中点的平移。`fontSize` 默认 11，文本带浅色描边；标签文本与顶点相同经 HTML/实体与多行规则处理。
 - **阶段 3**：矩形 **圆角**（`rounded=1` 比例圆角、`rounded=N` 像素半径、`rounded=0` 关闭；可选 `arcSize`）；顶点与边的 **虚线描边**（`dashed`）；**线性渐变**（`gradientColor` + `gradientDirection`：`north`/`south`/`east`/`west` 及四角别名，`objectBoundingBox`）。
 - **阶段 4**：顶点/边 `value` 中常见 **HTML 片段**与实体 **降级为纯文本**（行内空白折叠）。
-- **阶段 5（子集）**：**显式多行**——`</p>`、`</div>`、`</tr>`、`<br>` 与源码换行等产生逻辑行，SVG 内用 **`<tspan>` 垂直堆叠**并在形状内大致居中；**不按框宽自动折行**、不做字形测量（可选后续接入 Pretext 等）。
+- **阶段 5（子集）**：**显式多行**——`</p>`、`</div>`、`</tr>`、`<br>` 与源码换行等产生逻辑行，SVG 内用 **`<tspan>` 垂直堆叠**并在形状内大致居中。若样式含 **`whiteSpace=wrap`**，顶点标签在框内用 **[Pretext](https://github.com/chenglou/pretext)**（`prepareWithSegments` + `layoutWithLines`）按 **`Arial, Helvetica, sans-serif`** 与字号测量折行；CLI/Bun 下通过 **`@napi-rs/canvas`** 注入 `OffscreenCanvas` 垫片以提供 `measureText`。
 - **阶段 6**：常用 **`shape=*`** 的 path 近似（见上）；`rounded` 仅作用于默认矩形。
 - **仍不渲染**：曲线边、泳道、表格、UserObject 包装、富文本样式（颜色/粗体等）、更多 stencil 形状等（见路线图）。
 
@@ -28,10 +28,12 @@ const svg = convert(xml, { pageIndex: 0, padding: 8, backgroundColor: "#fff" });
 
 - `fast-xml-parser`：无 DOM 的 XML 解析（Node / Bun 均可）。
 - `pako`：解压 diagram 内压缩内容。
+- `@chenglou/pretext`：顶点 `whiteSpace=wrap` 时的折行与宽度测量。
+- `@napi-rs/canvas`：在非浏览器环境为 Pretext 提供 Canvas 2D（`OffscreenCanvas` 垫片，见 `src/pretext-shim.ts`）。
 
 ## 路线图（分步迭代）
 
-1. **阶段 5+**：可选 **Pretext** 等——按框宽自动折行、更准的垂直度量与对齐。
+1. **阶段 5+**：更细的垂直度量、边标签折行、与 draw.io 完全一致的字体栈选项等。
 2. **阶段 7+**：更多 `shape=*`（三角形、梯形、泳道等）、曲线边、表格等。
 
 ## 开发

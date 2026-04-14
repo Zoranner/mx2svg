@@ -1,6 +1,7 @@
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
 import { polylinePointAtLengthFraction } from "./polyline.ts";
 import { shapePathD } from "./shape-path.ts";
+import { wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
 
 export interface RenderOptions {
   /** 渲染第几页（0-based），默认 0 */
@@ -248,7 +249,9 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   if (n.label.trim()) {
     const tx = n.x + n.width / 2;
     const ty = n.y + n.height / 2;
-    parts.push(renderSvgLabelBlock(tx, ty, fs, n.label));
+    const wrap =
+      n.style.get("whitespace") === "wrap" ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, 8) : n.label;
+    parts.push(renderSvgLabelBlock(tx, ty, fs, wrap));
   }
 
   return `<g data-mx2svg-id="${esc(n.id)}">${parts.join("")}</g>`;

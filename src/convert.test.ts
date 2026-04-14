@@ -191,6 +191,15 @@ describe("convert", () => {
     expect(svg).toContain("Line2");
   });
 
+  test("whiteSpace=wrap wraps long label with Pretext into multiple tspans", () => {
+    const xml = minimalMxfile.replace(
+      'value="Hello"',
+      'value="One two three four five six seven eight nine ten"',
+    );
+    const svg = convert(xml);
+    expect((svg.match(/<tspan/g) ?? []).length).toBeGreaterThan(1);
+  });
+
   test("vertex value with HTML shows plain text in SVG", () => {
     const xml = minimalMxfile.replace(
       'value="Hello"',
