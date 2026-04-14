@@ -811,4 +811,59 @@ describe("convert", () => {
     expect(svg).toContain('stop-color="#ffffff"');
     expect(svg).toMatch(/fill="url\(#mx2svg-g-\d+\)"/);
   });
+
+  test("vertex fillColor=none renders fill none on rect", () => {
+    const xml = minimalMxfile.replace("fillColor=#dae8fc;", "fillColor=none;");
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/fill="none"/);
+    expect(inner).not.toContain("<linearGradient");
+  });
+
+  test("vertex strokeColor=none renders stroke none", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=none;");
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke="none"');
+  });
+
+  test("vertex strokeWidth=0 omits visible stroke", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;strokeWidth=0;");
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke="none"');
+  });
+
+  test("vertex shadow=1 adds filter on group and defs filter", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;shadow=1;");
+    const svg = convert(xml);
+    expect(svg).toContain('id="mx2svg-drop-shadow"');
+    expect(svg).toMatch(/data-mx2svg-id="2"[^>]*filter="url\(#mx2svg-drop-shadow\)"/);
+  });
+
+  test("vertex flipH=1 wraps content in scale(-1, 1) around center", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipH=1;");
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/translate\(160, 110\)\s+scale\(-1, 1\)\s+translate\(-160, -110\)/);
+  });
+
+  test("vertex flipH with rotation combines translate rotate scale", () => {
+    const xml = minimalMxfile
+      .replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipH=1;")
+      .replace(
+        '<mxGeometry x="100" y="80" width="120" height="60" as="geometry"/>',
+        '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>',
+      );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/translate\(160, 110\)/);
+    expect(inner).toMatch(/rotate\(45\)/);
+    expect(inner).toMatch(/scale\(-1, 1\)/);
+  });
+
+  test("edge strokeColor=none drops markers and uses stroke none", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=none;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke="none"');
+    expect(inner).not.toContain("marker-end");
+  });
 });

@@ -16,6 +16,7 @@ import {
   roundedOrthogonalToPolylineApprox,
   useRoundedOrthogonalPath,
 } from "../edge/edge-rounded.ts";
+import { strokeWidthPx } from "./svg-util.ts";
 
 export interface EdgeLineMetrics {
   metricsPolyline: { x: number; y: number }[];
@@ -32,7 +33,7 @@ export function computeEdgeLineMetrics(edges: DiagramEdge[]): Map<string, EdgeLi
   const out = new Map<string, EdgeLineMetrics>();
 
   for (const e of edges) {
-    const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
+    const sw = strokeWidthPx(e.style, 1);
     const ref: EdgeWaypointRef = { id: e.id, points: e.points, style: e.style };
     const jumpMap = collectJumpMap(e.points, ref, waypoints);
     const jump = buildJumpPathDAndPolyline(e.points, jumpMap, e.style, sw);

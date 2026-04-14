@@ -13,15 +13,21 @@ import type { GradientBuildContext } from "./svg-util.ts";
 import {
   allocFill,
   colorOr,
+  dropShadowFilterId,
   esc,
   fillOpacityAttr,
   groupOpacityAttr,
   labelBackgroundStrokeAttrs,
+  mxPaintColor,
   mxStyleDoubleEnabled,
+  mxStyleFlipH,
+  mxStyleFlipV,
+  mxStyleShadowEnabled,
   rectCornerRadius,
   strokeDashAttr,
   strokeMiterlimitAttr,
   strokeOpacityAttr,
+  strokeWidthPx,
   vertexLineStrokeCapAttr,
   vertexOptionalStrokeCapJoinAttr,
   vertexPathStrokeCapJoinAttr,
@@ -32,10 +38,11 @@ export function renderVertex(
   g: GradientBuildContext,
   defaultFontStack?: string,
 ): string {
-  const fillSolid = colorOr(n.style, "fillcolor", "#dae8fc");
+  const fillSolid = mxPaintColor(n.style, "fillcolor", "#dae8fc");
   const fill = allocFill(n.style, fillSolid, g);
-  const stroke = colorOr(n.style, "strokecolor", "#6c8ebf");
-  const sw = Number(n.style.get("strokewidth") ?? "1") || 1;
+  const stroke = mxPaintColor(n.style, "strokecolor", "#6c8ebf");
+  const sw = strokeWidthPx(n.style, 1);
+  const strokeNone = stroke === "none" || sw === 0;
   const fs = Number(n.style.get("fontsize") ?? "12") || 12;
   const dashAttr = strokeDashAttr(n.style);
   const fillOp = fillOpacityAttr(n.style);
@@ -43,7 +50,7 @@ export function renderVertex(
   const paint2d = `${fillOp}${strokeOp}`;
   const parts: string[] = [];
   const miterAttr = strokeMiterlimitAttr(n.style);
-  const isDouble = mxStyleDoubleEnabled(n.style);
+  const isDouble = mxStyleDoubleEnabled(n.style) && !strokeNone;
 
   const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height, n.style);
   const pathCapJoin = vertexPathStrokeCapJoinAttr(n.style);
@@ -51,9 +58,13 @@ export function renderVertex(
   const lineCap = vertexLineStrokeCapAttr(n.style, "round");
 
   if (pathD) {
-    parts.push(
-      `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${pathCapJoin}${dashAttr}${paint2d}${miterAttr}/>`,
-    );
+    if (strokeNone) {
+      parts.push(`<path d="${pathD}" fill="${fill}"${fillOp} stroke="none"/>`);
+    } else {
+      parts.push(
+        `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${pathCapJoin}${dashAttr}${paint2d}${miterAttr}/>`,
+      );
+    }
   } else if (n.shape === "internalStorage") {
     const rounded = n.style.get("rounded") === "1" || n.style.get("rounded") === "true";
     const arcFrac = (Number(n.style.get("arcsize")) || 15) / 100;
@@ -64,18 +75,30 @@ export function renderVertex(
     const dx = Math.max(inset, Math.min(n.width, Number(n.style.get("dx")) || 15));
     const dy = Math.max(inset, Math.min(n.height, Number(n.style.get("dy")) || 15));
     const rx = rounded ? Math.min(n.width * arcFrac, n.height * arcFrac) : 0;
-    parts.push(
-      `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
-        stroke,
-      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
-    );
-    const lineStroke = esc(stroke);
-    parts.push(
-      `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
-    );
-    parts.push(
-      `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
-    );
+    if (strokeNone) {
+      parts.push(
+        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
+      );
+      parts.push(
+        `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="none"${lineCap}/>`,
+      );
+      parts.push(
+        `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="none"${lineCap}/>`,
+      );
+    } else {
+      parts.push(
+        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
+          stroke,
+        )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
+      );
+      const lineStroke = esc(stroke);
+      parts.push(
+        `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
+      );
+      parts.push(
+        `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
+      );
+    }
   } else if (n.shape === "ellipse") {
     const cx = n.x + n.width / 2;
     const cy = n.y + n.height / 2;
@@ -97,6 +120,10 @@ export function renderVertex(
           `<ellipse cx="${cx}" cy="${cy}" rx="${irx}" ry="${iry}" fill="none" stroke="${esc(stroke)}" stroke-width="${sw}"${strokeOnlyExtras}/>`,
         );
       }
+    } else if (strokeNone) {
+      parts.push(
+        `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"${fillOp} stroke="none"/>`,
+      );
     } else {
       parts.push(
         `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
@@ -125,6 +152,10 @@ export function renderVertex(
           )}" stroke-width="${sw}" rx="${rxIn}" ry="${rxIn}"${strokeOnlyExtras}/>`,
         );
       }
+    } else if (strokeNone) {
+      parts.push(
+        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
+      );
     } else {
       parts.push(
         `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
@@ -191,10 +222,22 @@ export function renderVertex(
 
   const inner = parts.join("");
   const gOp = groupOpacityAttr(n.style);
-  if (n.rotation !== 0) {
-    const rcx = n.x + n.width / 2;
-    const rcy = n.y + n.height / 2;
-    return `<g data-mx2svg-id="${esc(n.id)}"${gOp}><g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${inner}</g></g>`;
+  const filt = mxStyleShadowEnabled(n.style) ? ` filter="url(#${dropShadowFilterId()})"` : "";
+  const rcx = n.x + n.width / 2;
+  const rcy = n.y + n.height / 2;
+  const fh = mxStyleFlipH(n.style) ? -1 : 1;
+  const fv = mxStyleFlipV(n.style) ? -1 : 1;
+  const needFlip = fh !== 1 || fv !== 1;
+  const needRot = n.rotation !== 0;
+  let innerWrapped = inner;
+  if (needRot && !needFlip) {
+    innerWrapped = `<g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${inner}</g>`;
+  } else if (needFlip) {
+    const tr: string[] = [`translate(${rcx}, ${rcy})`];
+    if (needRot) tr.push(`rotate(${n.rotation})`);
+    tr.push(`scale(${fh}, ${fv})`);
+    tr.push(`translate(${-rcx}, ${-rcy})`);
+    innerWrapped = `<g transform="${tr.join(" ")}">${inner}</g>`;
   }
-  return `<g data-mx2svg-id="${esc(n.id)}"${gOp}>${inner}</g>`;
+  return `<g data-mx2svg-id="${esc(n.id)}"${gOp}${filt}>${innerWrapped}</g>`;
 }

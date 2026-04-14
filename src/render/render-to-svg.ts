@@ -5,7 +5,12 @@ import { computeEdgeLineMetrics } from "./edge-line-metrics.ts";
 import type { RenderOptions } from "./options.ts";
 import { renderEdge } from "./render-edge.ts";
 import { renderVertex } from "./render-vertex.ts";
-import { esc, type GradientBuildContext } from "./svg-util.ts";
+import {
+  dropShadowFilterDefXml,
+  esc,
+  type GradientBuildContext,
+  mxStyleShadowEnabled,
+} from "./svg-util.ts";
 
 export type { RenderOptions } from "./options.ts";
 
@@ -34,7 +39,12 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
   const nodeLayer = page.nodes.map((n) => renderVertex(n, gctx, defaultFontStack)).join("\n");
 
   const gradientBlock = gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
-  const defsInner = [buildArrowMarkerDefs(page.edges), gradientBlock].filter(Boolean).join("\n  ");
+  const shadowBlock = page.nodes.some((n) => mxStyleShadowEnabled(n.style))
+    ? dropShadowFilterDefXml()
+    : "";
+  const defsInner = [buildArrowMarkerDefs(page.edges), gradientBlock, shadowBlock]
+    .filter(Boolean)
+    .join("\n  ");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}">

@@ -23,31 +23,36 @@ import {
   fillOpacityAttr,
   groupOpacityAttr,
   labelBackgroundStrokeAttrs,
+  mxPaintColor,
   strokeDashAttr,
   strokeMiterlimitAttr,
   strokeOpacityAttr,
+  strokeWidthPx,
 } from "./svg-util.ts";
 
 export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: string): string {
-  const stroke = colorOr(e.style, "strokecolor", "#000000");
-  const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
+  const strokeRaw = mxPaintColor(e.style, "strokecolor", "#000000");
+  const sw = strokeWidthPx(e.style, 1);
+  const strokeNone = strokeRaw === "none" || sw === 0;
+  const stroke = strokeNone ? "none" : strokeRaw;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
   const dashAttr = strokeDashAttr(e.style);
-  const markerEnd = markerEndAttr(parseEndArrow(e.style), stroke);
-  const markerStart = markerStartAttr(parseStartArrow(e.style), stroke);
+  const strokeVisible = !strokeNone;
+  const markerEnd = strokeVisible ? markerEndAttr(parseEndArrow(e.style), strokeRaw) : "";
+  const markerStart = strokeVisible ? markerStartAttr(parseStartArrow(e.style), strokeRaw) : "";
   const strokeOp = strokeOpacityAttr(e.style);
   const miterAttr = strokeMiterlimitAttr(e.style);
 
   const pathD = m.pathD;
   const capJoin = edgeStrokeCapJoinAttr(e.style);
+  const lineStroke = strokeNone
+    ? ' stroke="none"'
+    : ` stroke="${esc(stroke)}" stroke-width="${sw}"`;
+  const linePaint = strokeNone ? "" : `${capJoin}${dashAttr}${strokeOp}${miterAttr}`;
   const lineEl =
     pathD != null
-      ? `<path d="${esc(pathD)}" fill="none" stroke="${esc(
-          stroke,
-        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${miterAttr}${markerStart}${markerEnd}/>`
-      : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
-          stroke,
-        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${miterAttr}${markerStart}${markerEnd}/>`;
+      ? `<path d="${esc(pathD)}" fill="none"${lineStroke}${linePaint}${markerStart}${markerEnd}/>`
+      : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none"${lineStroke}${linePaint}${markerStart}${markerEnd}/>`;
 
   const parts: string[] = [lineEl];
 

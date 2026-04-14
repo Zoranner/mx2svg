@@ -13,6 +13,61 @@ export function colorOr(style: Map<string, string>, key: string, fallback: strin
   return v;
 }
 
+/**
+ * 形状/描边用颜色：键**存在**且为 **`none`** 时保留 **`none`**；键缺失时用 **`fallback`**。
+ * （`colorOr` 会把 **`none`** 当成“未设置”而退回默认，不适合填充/描边关闭。）
+ */
+export function mxPaintColor(style: Map<string, string>, key: string, fallback: string): string {
+  if (!style.has(key)) return fallback;
+  const v = style.get(key);
+  if (v == null || v === "") return fallback;
+  if (v.toLowerCase() === "none") return "none";
+  return v;
+}
+
+/** `strokeWidth`：未设默认 **`defaultWidth`**；非法则回退；**`0`** 保留（表示无描边）。 */
+export function strokeWidthPx(style: Map<string, string>, defaultWidth: number): number {
+  const raw = style.get("strokewidth");
+  if (raw == null || raw === "") return defaultWidth;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return defaultWidth;
+  return n;
+}
+
+const DROP_SHADOW_FILTER_ID = "mx2svg-drop-shadow";
+
+/** draw.io **`shadow=1`**：整图元投影（近似）。 */
+export function mxStyleShadowEnabled(style: Map<string, string>): boolean {
+  const v = style.get("shadow");
+  return v === "1" || v === "true";
+}
+
+export function dropShadowFilterId(): string {
+  return DROP_SHADOW_FILTER_ID;
+}
+
+/** 放入 `<defs>` 一次即可；与 **`filter="url(#…)"`** 配对。 */
+export function dropShadowFilterDefXml(): string {
+  return `<filter id="${DROP_SHADOW_FILTER_ID}" x="-50%" y="-50%" width="200%" height="200%">
+  <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur"/>
+  <feOffset in="blur" dx="2" dy="3" result="offsetBlur"/>
+  <feMerge>
+    <feMergeNode in="offsetBlur"/>
+    <feMergeNode in="SourceGraphic"/>
+  </feMerge>
+</filter>`;
+}
+
+export function mxStyleFlipH(style: Map<string, string>): boolean {
+  const v = style.get("fliph");
+  return v === "1" || v === "true";
+}
+
+export function mxStyleFlipV(style: Map<string, string>): boolean {
+  const v = style.get("flipv");
+  return v === "1" || v === "true";
+}
+
 /** draw.io `gradientDirection` → SVG objectBoundingBox 线性渐变向量 */
 export function gradientDirectionToPercents(dirRaw: string): {
   x1: string;
@@ -228,6 +283,9 @@ export function allocFill(
   baseFill: string,
   g: GradientBuildContext,
 ): string {
+  if (baseFill === "none") {
+    return "none";
+  }
   const g2 = colorOr(style, "gradientcolor", "");
   if (!g2 || g2 === "none") {
     return esc(baseFill);
