@@ -1,5 +1,6 @@
 import type { DiagramEdge } from "../core/model.ts";
 import {
+  edgeArrowSizeScale,
   markerEndAttr,
   markerStartAttr,
   parseEndArrow,
@@ -24,10 +25,12 @@ import {
   groupOpacityAttr,
   labelBackgroundStrokeAttrs,
   mxPaintColor,
+  mxStyleLinkHref,
   strokeDashAttr,
   strokeMiterlimitAttr,
   strokeOpacityAttr,
   strokeWidthPx,
+  wrapSvgHyperlink,
 } from "./svg-util.ts";
 
 export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: string): string {
@@ -38,8 +41,12 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
   const dashAttr = strokeDashAttr(e.style);
   const strokeVisible = !strokeNone;
-  const markerEnd = strokeVisible ? markerEndAttr(parseEndArrow(e.style), strokeRaw) : "";
-  const markerStart = strokeVisible ? markerStartAttr(parseStartArrow(e.style), strokeRaw) : "";
+  const scaleEnd = edgeArrowSizeScale(e.style, true);
+  const scaleStart = edgeArrowSizeScale(e.style, false);
+  const markerEnd = strokeVisible ? markerEndAttr(parseEndArrow(e.style), strokeRaw, scaleEnd) : "";
+  const markerStart = strokeVisible
+    ? markerStartAttr(parseStartArrow(e.style), strokeRaw, scaleStart)
+    : "";
   const strokeOp = strokeOpacityAttr(e.style);
   const miterAttr = strokeMiterlimitAttr(e.style);
 
@@ -57,6 +64,7 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
   const parts: string[] = [lineEl];
 
   if (e.label.trim()) {
+    const labelLink = mxStyleLinkHref(e.style);
     const anchor = edgeLabelAnchor(e, m.metricsPolyline);
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
     const softWrap = e.style.get("whitespace") === "wrap";
@@ -82,12 +90,13 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
     const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
     let tcx = anchor.x;
     let tcy = anchor.y;
+    const labelParts: string[] = [];
     if (hasLabelBg) {
-      const pad = 4;
-      const lay = edgeLabelBackgroundLayout(anchor, tw, th, pad, ah, av);
+      const bgPad = 4;
+      const lay = edgeLabelBackgroundLayout(anchor, tw, th, bgPad, ah, av);
       tcx = lay.tcx;
       tcy = lay.tcy;
-      parts.push(
+      labelParts.push(
         `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOpacityAttr(e.style)}${labelBackgroundStrokeAttrs(e.style)}/>`,
       );
     } else {
@@ -95,7 +104,7 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
       tcx = c.x;
       tcy = c.y;
     }
-    parts.push(
+    labelParts.push(
       renderSvgLabelBlock(tcx, tcy, fs, displayLabel, {
         contrastStroke: !hasLabelBg,
         fill: labelFill,
@@ -105,7 +114,13 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
         contentWidth: tw,
       }),
     );
+    let labelBlock = labelParts.join("");
+    if (labelLink) labelBlock = wrapSvgHyperlink(labelBlock, labelLink);
+    parts.push(labelBlock);
   }
 
-  return `<g data-mx2svg-edge="${esc(e.id)}"${groupOpacityAttr(e.style)}>${parts.join("")}</g>`;
+  const titleEl = e.tooltip?.trim() ? `<title>${esc(e.tooltip.trim())}</title>` : "";
+  return `<g data-mx2svg-edge="${esc(e.id)}"${groupOpacityAttr(e.style)}>${titleEl}${parts.join(
+    "",
+  )}</g>`;
 }

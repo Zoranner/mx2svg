@@ -37,6 +37,7 @@ describe("edge-arrow", () => {
 
   test("arrowMarkerId encodes stroke hex slug", () => {
     expect(arrowMarkerId("filled", "end", "#82b366")).toBe("mx2svg-am-filled-end-82b366");
+    expect(arrowMarkerId("filled", "end", "#82b366", 2)).toBe("mx2svg-am-filled-end-82b366-2000");
   });
 
   test("buildArrowMarkerDefs uses edge stroke in marker fill", () => {
@@ -55,5 +56,24 @@ describe("edge-arrow", () => {
     const defs = buildArrowMarkerDefs([e]);
     expect(defs).toContain('id="mx2svg-am-filled-end-ff0000"');
     expect(defs).toContain('fill="#ff0000"');
+  });
+
+  test("buildArrowMarkerDefs scales marker when endSize is set", () => {
+    const e: DiagramEdge = {
+      id: "e1",
+      parentId: "1",
+      source: "a",
+      target: "b",
+      label: "",
+      points: [],
+      style: new Map([
+        ["endarrow", "classic"],
+        ["strokecolor", "#00aa00"],
+        ["endsize", "12"],
+      ]),
+    };
+    const defs = buildArrowMarkerDefs([e]);
+    expect(defs).toContain('id="mx2svg-am-filled-end-00aa00-2000"');
+    expect(defs).toContain('markerWidth="20"');
   });
 });

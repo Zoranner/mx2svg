@@ -48,12 +48,28 @@ export function arrowColorSlug(strokeRaw: string): string {
   return (h >>> 0).toString(16);
 }
 
+/**
+ * draw.io **`endSize` / `startSize`**：以 **`6`** 为默认比例 **1**，限制在约 **0.35～5**。
+ */
+export function edgeArrowSizeScale(style: Map<string, string>, end: boolean): number {
+  const key = end ? "endsize" : "startsize";
+  const raw = style.get(key);
+  if (raw == null || raw === "") return 1;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return Math.max(0.35, Math.min(5, n / 6));
+}
+
 export function arrowMarkerId(
   kind: ArrowHeadKind,
   side: "end" | "start",
   strokeRaw: string,
+  scale = 1,
 ): string {
-  return `mx2svg-am-${kind}-${side}-${arrowColorSlug(strokeRaw)}`;
+  const base = `mx2svg-am-${kind}-${side}-${arrowColorSlug(strokeRaw)}`;
+  const q = Math.round(scale * 1000);
+  if (q === 1000) return base;
+  return `${base}-${q}`;
 }
 
 function escAttr(s: string): string {
@@ -65,35 +81,48 @@ function renderMarkerDef(
   kind: ArrowHeadKind,
   side: "end" | "start",
   strokeRaw: string,
+  s: number,
 ): string {
   const c = escAttr(strokeRaw);
+  const swOpen = Math.max(0.5, 1.5 * s);
   switch (kind) {
     case "none":
       return "";
-    case "filled":
+    case "filled": {
+      const w = 10 * s;
+      const h = 10 * s;
+      const refYE = 5 * s;
       if (side === "end") {
-        return `<marker id="${id}" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 0 0 L 10 5 L 0 10 z" fill="${c}"/></marker>`;
+        return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${9 * s}" refY="${refYE}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M 0 0 L ${10 * s} ${5 * s} L 0 ${10 * s} z" fill="${c}"/></marker>`;
       }
-      return `<marker id="${id}" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 10 0 L 0 5 L 10 10 z" fill="${c}"/></marker>`;
-    case "open":
+      return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${1 * s}" refY="${refYE}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${10 * s} 0 L 0 ${5 * s} L ${10 * s} ${10 * s} z" fill="${c}"/></marker>`;
+    }
+    case "open": {
+      const w = 12 * s;
+      const h = 12 * s;
       if (side === "end") {
-        return `<marker id="${id}" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 1 1 L 11 6 L 1 11" fill="none" stroke="${c}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
+        return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${11 * s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${s} ${s} L ${11 * s} ${6 * s} L ${s} ${11 * s}" fill="none" stroke="${c}" stroke-width="${swOpen}" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
       }
-      return `<marker id="${id}" markerWidth="12" markerHeight="12" refX="1" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 11 1 L 1 6 L 11 11" fill="none" stroke="${c}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
-    case "oval":
-      return `<marker id="${id}" markerWidth="10" markerHeight="10" refX="${side === "end" ? "9" : "1"}" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-  <ellipse cx="5" cy="5" rx="4" ry="4" fill="${c}"/></marker>`;
+      return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${11 * s} ${s} L ${s} ${6 * s} L ${11 * s} ${11 * s}" fill="none" stroke="${c}" stroke-width="${swOpen}" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
+    }
+    case "oval": {
+      const w = 10 * s;
+      const h = 10 * s;
+      const refX = side === "end" ? 9 * s : 1 * s;
+      return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${refX}" refY="${5 * s}" orient="auto" markerUnits="userSpaceOnUse">
+  <ellipse cx="${5 * s}" cy="${5 * s}" rx="${4 * s}" ry="${4 * s}" fill="${c}"/></marker>`;
+    }
     case "diamond":
       if (side === "end") {
-        return `<marker id="${id}" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 1 6 L 6 1 L 11 6 L 6 11 Z" fill="${c}"/></marker>`;
+        return `<marker id="${id}" markerWidth="${12 * s}" markerHeight="${12 * s}" refX="${11 * s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${s} ${6 * s} L ${6 * s} ${s} L ${11 * s} ${6 * s} L ${6 * s} ${11 * s} Z" fill="${c}"/></marker>`;
       }
-      return `<marker id="${id}" markerWidth="12" markerHeight="12" refX="1" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 11 6 L 6 1 L 1 6 L 6 11 Z" fill="${c}"/></marker>`;
+      return `<marker id="${id}" markerWidth="${12 * s}" markerHeight="${12 * s}" refX="${s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${11 * s} ${6 * s} L ${6 * s} ${s} L ${s} ${6 * s} L ${6 * s} ${11 * s} Z" fill="${c}"/></marker>`;
     default: {
       const _n: never = kind;
       return _n;
@@ -109,30 +138,32 @@ export function buildArrowMarkerDefs(edges: DiagramEdge[]): string {
     const stroke = edgeStrokeColor(e.style);
     const endK = parseEndArrow(e.style);
     const startK = parseStartArrow(e.style);
+    const se = edgeArrowSizeScale(e.style, true);
+    const ss = edgeArrowSizeScale(e.style, false);
     if (endK !== "none") {
-      const id = arrowMarkerId(endK, "end", stroke);
+      const id = arrowMarkerId(endK, "end", stroke, se);
       if (!seen.has(id)) {
         seen.add(id);
-        out.push(renderMarkerDef(id, endK, "end", stroke));
+        out.push(renderMarkerDef(id, endK, "end", stroke, se));
       }
     }
     if (startK !== "none") {
-      const id = arrowMarkerId(startK, "start", stroke);
+      const id = arrowMarkerId(startK, "start", stroke, ss);
       if (!seen.has(id)) {
         seen.add(id);
-        out.push(renderMarkerDef(id, startK, "start", stroke));
+        out.push(renderMarkerDef(id, startK, "start", stroke, ss));
       }
     }
   }
   return out.join("\n");
 }
 
-export function markerEndAttr(kind: ArrowHeadKind, strokeRaw: string): string {
+export function markerEndAttr(kind: ArrowHeadKind, strokeRaw: string, scale = 1): string {
   if (kind === "none") return "";
-  return ` marker-end="url(#${arrowMarkerId(kind, "end", strokeRaw)})"`;
+  return ` marker-end="url(#${arrowMarkerId(kind, "end", strokeRaw, scale)})"`;
 }
 
-export function markerStartAttr(kind: ArrowHeadKind, strokeRaw: string): string {
+export function markerStartAttr(kind: ArrowHeadKind, strokeRaw: string, scale = 1): string {
   if (kind === "none") return "";
-  return ` marker-start="url(#${arrowMarkerId(kind, "start", strokeRaw)})"`;
+  return ` marker-start="url(#${arrowMarkerId(kind, "start", strokeRaw, scale)})"`;
 }

@@ -278,6 +278,39 @@ export interface GradientBuildContext {
   nextId: number;
 }
 
+/** style **`link`**：超链接 URL（原样保留，写入 **`href`** 时经 **`esc`**）。 */
+export function mxStyleLinkHref(style: Map<string, string>): string | undefined {
+  const u = style.get("link")?.trim();
+  if (!u) return undefined;
+  return u;
+}
+
+/** 将标签片段包在 SVG **`<a href>`** 中（新窗口、**`noopener`**）。 */
+export function wrapSvgHyperlink(innerSvg: string, hrefRaw: string): string {
+  return `<a href="${esc(hrefRaw)}" target="_blank" rel="noopener noreferrer">${innerSvg}</a>`;
+}
+
+/** **`overflow=hidden`** 或 **`clip`**：标签裁剪到标签区内。 */
+export function mxStyleOverflowHidden(style: Map<string, string>): boolean {
+  const v = (style.get("overflow") ?? "").toLowerCase().trim();
+  return v === "hidden" || v === "clip";
+}
+
+/** 在 **`defs`** 中登记轴对齐裁剪矩形，返回 **`clipPath` id**。 */
+export function allocRectClipPath(
+  g: GradientBuildContext,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): string {
+  const id = `mx2svg-clip-${g.nextId++}`;
+  g.fragments.push(
+    `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath>`,
+  );
+  return id;
+}
+
 export function allocFill(
   style: Map<string, string>,
   baseFill: string,

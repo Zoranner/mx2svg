@@ -39,6 +39,7 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
     const rotation = numAttr(geoObj as Record<string, unknown>, "rotation", 0);
+    const tooltip = strAttr(cell, "tooltip");
 
     nodes.push({
       id,
@@ -51,6 +52,7 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
       label: mxLabelToPlainText(value),
       shape: inferShape(style),
       style,
+      ...(tooltip != null && tooltip !== "" ? { tooltip } : {}),
     });
   }
 
@@ -96,6 +98,7 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     });
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
+    const tooltip = strAttr(cell, "tooltip");
     const labelFields = parseEdgeLabelFields(geoObj);
     const geoW = geoObj ? numAttr(geoObj, "width", NaN) : NaN;
     const labelWrapWidth = Number.isFinite(geoW) && geoW > 0 ? geoW : undefined;
@@ -110,6 +113,7 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
       style,
       ...(source ? { source } : {}),
       ...(target ? { target } : {}),
+      ...(tooltip != null && tooltip !== "" ? { tooltip } : {}),
     });
   }
 

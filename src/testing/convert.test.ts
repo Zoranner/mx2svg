@@ -896,4 +896,57 @@ describe("convert", () => {
       (innerBase.match(/<tspan/g) ?? []).length,
     );
   });
+
+  test("mxCell tooltip becomes SVG title on vertex and edge", () => {
+    const xml = minimalMxfile
+      .replace(
+        '<mxCell id="2" value="Hello" style=',
+        '<mxCell id="2" value="Hello" tooltip="vertex tip" style=',
+      )
+      .replace('<mxCell id="4" edge="1"', '<mxCell id="4" edge="1" tooltip="edge tip"');
+    const svg = convert(xml);
+    const vg = svg.match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const eg = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(vg).toContain("<title>vertex tip</title>");
+    expect(eg).toContain("<title>edge tip</title>");
+  });
+
+  test("vertex style link wraps label in anchor", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;link=https://example.com/foo;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('<a href="https://example.com/foo"');
+    expect(inner).toContain("</a>");
+  });
+
+  test("edge style link wraps label in anchor", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;link=https://example.org/bar;">',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('<a href="https://example.org/bar"');
+  });
+
+  test("vertex overflow=hidden registers clipPath and clips label group", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;overflow=hidden;",
+    );
+    const svg = convert(xml);
+    expect(svg).toMatch(/<clipPath id="mx2svg-clip-\d+"/);
+    expect(svg).toMatch(/clip-path="url\(#mx2svg-clip-\d+\)"/);
+  });
+
+  test("edge endSize scales marker definition", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=#82b366;endSize=12;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('id="mx2svg-am-filled-end-82b366-2000"');
+    expect(svg).toContain('markerWidth="20"');
+  });
 });

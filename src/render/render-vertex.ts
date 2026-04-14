@@ -16,6 +16,7 @@ import { renderSvgLabelBlock } from "./label-svg.ts";
 import type { GradientBuildContext } from "./svg-util.ts";
 import {
   allocFill,
+  allocRectClipPath,
   colorOr,
   dropShadowFilterId,
   esc,
@@ -26,6 +27,8 @@ import {
   mxStyleDoubleEnabled,
   mxStyleFlipH,
   mxStyleFlipV,
+  mxStyleLinkHref,
+  mxStyleOverflowHidden,
   mxStyleShadowEnabled,
   rectCornerRadius,
   strokeDashAttr,
@@ -35,6 +38,7 @@ import {
   vertexLineStrokeCapAttr,
   vertexOptionalStrokeCapJoinAttr,
   vertexPathStrokeCapJoinAttr,
+  wrapSvgHyperlink,
 } from "./svg-util.ts";
 
 export function renderVertex(
@@ -199,14 +203,15 @@ export function renderVertex(
 
     const labelBgKey = colorOr(n.style, "labelbackgroundcolor", "");
     const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
+    const labelPieces: string[] = [];
     let tcx: number;
     let tcy: number;
     if (hasLabelBg) {
-      const pad = 4;
-      const lay = edgeLabelBackgroundLayout(anchor, tw, th, pad, ah, av);
+      const bgPad = 4;
+      const lay = edgeLabelBackgroundLayout(anchor, tw, th, bgPad, ah, av);
       tcx = lay.tcx;
       tcy = lay.tcy;
-      parts.push(
+      labelPieces.push(
         `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"${fillOp}${labelBackgroundStrokeAttrs(n.style)}/>`,
       );
     } else {
@@ -215,7 +220,7 @@ export function renderVertex(
       tcy = c.y;
     }
     const labelFill = colorOr(n.style, "fontcolor", "#000000");
-    parts.push(
+    labelPieces.push(
       renderSvgLabelBlock(tcx, tcy, fs, wrap, {
         fill: labelFill,
         style: n.style,
@@ -224,6 +229,16 @@ export function renderVertex(
         contentWidth: tw,
       }),
     );
+    let labelBlock = labelPieces.join("");
+    const href = mxStyleLinkHref(n.style);
+    if (href) labelBlock = wrapSvgHyperlink(labelBlock, href);
+    if (mxStyleOverflowHidden(n.style)) {
+      const cw = Math.max(0, rect.right - rect.left);
+      const ch = Math.max(0, rect.bottom - rect.top);
+      const clipId = allocRectClipPath(g, rect.left, rect.top, cw, ch);
+      labelBlock = `<g clip-path="url(#${clipId})">${labelBlock}</g>`;
+    }
+    parts.push(labelBlock);
   }
 
   const inner = parts.join("");
@@ -245,5 +260,6 @@ export function renderVertex(
     tr.push(`translate(${-rcx}, ${-rcy})`);
     innerWrapped = `<g transform="${tr.join(" ")}">${inner}</g>`;
   }
-  return `<g data-mx2svg-id="${esc(n.id)}"${gOp}${filt}>${innerWrapped}</g>`;
+  const titleEl = n.tooltip?.trim() ? `<title>${esc(n.tooltip.trim())}</title>` : "";
+  return `<g data-mx2svg-id="${esc(n.id)}"${gOp}${filt}>${titleEl}${innerWrapped}</g>`;
 }

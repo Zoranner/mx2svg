@@ -31,6 +31,8 @@ export interface DiagramNode {
   shape: NodeShape;
   /** 原始 style 键值（小写 key，便于扩展） */
   style: Map<string, string>;
+  /** `mxCell` 的 **`tooltip`** 属性 → SVG **`<title>`**（原生悬停提示）。 */
+  tooltip?: string;
 }
 
 /**
@@ -53,6 +55,8 @@ export interface DiagramEdge {
   style: Map<string, string>;
   source?: string;
   target?: string;
+  /** `mxCell` 的 **`tooltip`** 属性 → SVG **`<title>`**。 */
+  tooltip?: string;
 }
 
 export interface DiagramPage {
