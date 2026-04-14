@@ -174,6 +174,26 @@ describe("convert", () => {
     expect(inner).not.toContain("160,110");
   });
 
+  test("edge spacing from rhombus source differs from rect source polyline start", () => {
+    const rhombusXml = minimalMxfile
+      .replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      )
+      .replace(
+        "endArrow=classic;strokeColor=#82b366;",
+        "endArrow=classic;strokeColor=#82b366;spacing=12;",
+      );
+    const rectXml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=#82b366;spacing=12;",
+    );
+    const firstPolylinePoint = (svg: string): string =>
+      svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]?.match(/points="([^"]+)"/)?.[1]?.split(/\s+/)?.[0] ??
+      "";
+    expect(firstPolylinePoint(convert(rhombusXml))).not.toBe(firstPolylinePoint(convert(rectXml)));
+  });
+
   test("renders startArrow when startArrow is set in style", () => {
     const xml = minimalMxfile.replace(
       "endArrow=classic;strokeColor=#82b366;",

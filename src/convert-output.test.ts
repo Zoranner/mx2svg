@@ -231,4 +231,20 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("pad");
     dump("19-edge-label-padding", svg);
   });
+
+  test("rhombus source with edge spacing", () => {
+    const xml = minimalMxfile
+      .replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      )
+      .replace(
+        "endArrow=classic;strokeColor=#82b366;",
+        "endArrow=classic;strokeColor=#82b366;spacing=12;",
+      );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toContain("<polyline");
+    dump("20-rhombus-edge-spacing", svg);
+  });
 });
