@@ -187,10 +187,14 @@ describe("convert", () => {
     const m = inner.match(/points="([^"]+)"/);
     expect(m).not.toBeNull();
     const pts = m![1].split(/\s+/).filter(Boolean);
-    expect(pts.length).toBe(3);
-    const [mx, my] = pts[1]!.split(",").map(Number);
-    expect(mx).toBeCloseTo(208.06, 1);
-    expect(my).toBeCloseTo(41.33, 1);
+    expect(pts.length).toBe(4);
+    const nums = pts.map((s) => s.split(",").map(Number));
+    /** 推断为右→左正交 + Z 形：首段水平、中段竖、末段水平，端点贴近形状对边。 */
+    expect(nums[0]![1]).toBeCloseTo(nums[1]![1], 5);
+    expect(nums[1]![0]).toBeCloseTo(nums[2]![0], 5);
+    expect(nums[2]![1]).toBeCloseTo(nums[3]![1], 5);
+    expect(nums[0]![0]).toBeCloseTo(128, 1);
+    expect(nums[3]![0]).toBeCloseTo(208, 1);
   });
 
   test("edgeLabel child mxCell supplies edge label text", () => {
@@ -476,7 +480,7 @@ describe("convert", () => {
     expect(svg).toContain('y="38"');
   });
 
-  test("edge label mxPoint as label uses fraction along path", () => {
+  test("edge label mxPoint as label uses mxGraph relative x mapped to arc fraction", () => {
     const xml = minimalMxfile
       .replace(
         '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
@@ -488,8 +492,9 @@ describe("convert", () => {
       );
     const svg = convert(xml);
     expect(svg).toContain("frac");
-    expect(svg).toContain('x="113"');
-    expect(svg).toContain('y="40.5"');
+    /** mxGraph：label x=0.25 为相对边中心位移 →弧长比例 (0.25+1)/2=0.625（非旧误解析的 0.25）。 */
+    expect(svg).toContain('x="180.5"');
+    expect(svg).toContain('y="44.25"');
   });
 
   test("edge Array-only waypoints connect source and target perimeters", () => {

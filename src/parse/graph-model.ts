@@ -1,9 +1,11 @@
 import type { DiagramEdge, DiagramNode, DiagramRenderItem } from "../core/model.ts";
 import { perimeterPointFromCenterToward } from "../edge/edge-endpoint-spacing.ts";
 import {
+  inferOrthogonalZTrunk,
   orthogonalizeTwoPointPolyline,
   styleIsOrthogonalEdge,
 } from "../edge/edge-orthogonal-fallback.ts";
+import { orthogonalEndpointsFromStyleOrInfer } from "../edge/edge-orthogonal-terminals.ts";
 import { mxLabelHtmlFontSizePx, mxLabelToPlainText } from "../text/mx-label-plain.ts";
 import { applyEdgePointDirectionFromTerminals } from "./edge-direction.ts";
 import { maybeAdjustCenterConnectorPoints } from "./edge-endpoints.ts";
@@ -159,7 +161,10 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     });
     pts = ptsAfterSpacing;
 
-    /** 仅正交边在「中心回退」时用形状周界端点再折线；默认直线边仍用中心连线（与 draw.io 常见导出一致）。 */
+    /**
+     * 正交边在「中心回退」时：端点按 draw.io 语义——优先样式里的 exitX/Y、entryX/Y，否则按两盒相对位置选对边
+     * （上↔下、左↔右），再 Z 形折线；与「中心射线穿周界」相比更贴近编辑器默认路由。
+     */
     if (
       usedCenterFallback &&
       pts.length === 2 &&
@@ -171,14 +176,18 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
       const a = nodeById.get(source);
       const b = nodeById.get(target);
       if (a && b) {
-        const cA = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
-        const cB = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-        pts = [perimeterPointFromCenterToward(a, cB), perimeterPointFromCenterToward(b, cA)];
+        const { start, end } = orthogonalEndpointsFromStyleOrInfer(style, a, b);
+        const trunk = inferOrthogonalZTrunk(start, a, end, b);
+        pts = orthogonalizeTwoPointPolyline([start, end], trunk);
       }
     }
 
     if (usedCenterFallback && pts.length === 2 && styleIsOrthogonalEdge(style)) {
-      pts = orthogonalizeTwoPointPolyline(pts);
+      const a = source ? nodeById.get(source) : undefined;
+      const b = target ? nodeById.get(target) : undefined;
+      const trunk =
+        a && b ? inferOrthogonalZTrunk(pts[0]!, a, pts[1]!, b) : undefined;
+      pts = orthogonalizeTwoPointPolyline(pts, trunk);
     }
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;

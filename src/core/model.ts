@@ -44,9 +44,9 @@ export interface DiagramEdge {
   parentId: string | null;
   points: { x: number; y: number }[];
   label: string;
-  /** 边标签锚点（页面绝对坐标），来自 `mxPoint as="label"` 且 x 不在 [0,1]。 */
+  /** 边标签锚点（页面绝对坐标），来自 `mxPoint as="label"` 且 x 超出 mxGraph 边标签相对范围 [-1,1]。 */
   labelPosition?: { x: number; y: number };
-  /** `mxPoint as="label"` 且 x 在 [0,1]：沿最终渲染路径的弧长比例与法向偏移（像素）。 */
+  /** 沿最终渲染路径从源到目标的弧长比例 [0,1]与法向偏移（像素）；由 mxGraph `relative=1` 的 x（[-1,1]）映射为 `fraction=(x+1)/2`。 */
   edgeLabelPath?: { fraction: number; normalOffset: number };
   /** `relative=1` 且 geometry 带 x/y：相对路径几何中点的偏移。 */
   edgeLabelMidOffset?: { dx: number; dy: number };

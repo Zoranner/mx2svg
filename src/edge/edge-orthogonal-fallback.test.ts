@@ -13,14 +13,15 @@ describe("edge-orthogonal-fallback", () => {
     expect(styleIsOrthogonalEdge(b)).toBe(false);
   });
 
-  test("orthogonalizeTwoPointPolyline adds one elbow", () => {
+  test("orthogonalizeTwoPointPolyline adds Z-path (two elbows)", () => {
     const out = orthogonalizeTwoPointPolyline([
       { x: 0, y: 0 },
       { x: 10, y: 30 },
     ]);
     expect(out).toEqual([
       { x: 0, y: 0 },
-      { x: 0, y: 30 },
+      { x: 0, y: 15 },
+      { x: 10, y: 15 },
       { x: 10, y: 30 },
     ]);
     const out2 = orthogonalizeTwoPointPolyline([
@@ -29,7 +30,8 @@ describe("edge-orthogonal-fallback", () => {
     ]);
     expect(out2).toEqual([
       { x: 0, y: 0 },
-      { x: 40, y: 0 },
+      { x: 20, y: 0 },
+      { x: 20, y: 10 },
       { x: 40, y: 10 },
     ]);
   });

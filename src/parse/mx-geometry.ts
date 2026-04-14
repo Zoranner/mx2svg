@@ -122,6 +122,17 @@ export function mxPointByAs(
   return null;
 }
 
+/**
+ * mxGraph `mxGeometry` 边标签（`relative=1`）：`x` 在 [-1,1] 表示沿路径相对几何中点的位移（-1=源端、0=中点、+1=目标端）；`y` 为法向像素偏移。
+ * 本库 `edgeLabelPath.fraction` 为从源到目标的弧长比例 [0,1]，故 `t = (x+1)/2`。
+ *
+ * @see https://jgraph.github.io/mxgraph/docs/js-api/files/model/mxGeometry-js.html Edge Labels
+ */
+export function mxEdgeLabelRelativeXToArcFraction(x: number): number | null {
+  if (x < -1 || x > 1) return null;
+  return Math.max(0, Math.min(1, (x + 1) / 2));
+}
+
 /** 边标签几何：比例/中点偏移在渲染阶段用最终路径（含跳线）计算。 */
 export function parseEdgeLabelFields(
   geo: Record<string, unknown> | undefined,
@@ -132,8 +143,9 @@ export function parseEdgeLabelFields(
   const labelMx = mxPointByAs(geo, "label");
   if (labelMx && (labelMx.x !== 0 || labelMx.y !== 0)) {
     const { x: lx, y: ly } = labelMx;
-    if (lx >= 0 && lx <= 1) {
-      out.edgeLabelPath = { fraction: lx, normalOffset: ly };
+    const t = mxEdgeLabelRelativeXToArcFraction(lx);
+    if (t !== null) {
+      out.edgeLabelPath = { fraction: t, normalOffset: ly };
     } else {
       out.labelPosition = { x: lx, y: ly };
     }
@@ -143,6 +155,11 @@ export function parseEdgeLabelFields(
   if (strAttr(geo, "relative") === "1") {
     const ox = numAttr(geo, "x", 0);
     const oy = numAttr(geo, "y", 0);
+    const t = mxEdgeLabelRelativeXToArcFraction(ox);
+    if (t !== null && (ox !== 0 || oy !== 0)) {
+      out.edgeLabelPath = { fraction: t, normalOffset: oy };
+      return out;
+    }
     if (ox !== 0 || oy !== 0) {
       out.edgeLabelMidOffset = { dx: ox, dy: oy };
     }
@@ -152,8 +169,7 @@ export function parseEdgeLabelFields(
 }
 
 /**
- * `edgeLabel` 子 cell 的 mxGeometry：`relative` + `x,y`，可选 **`mxPoint as="offset"`**。
- * **`x` 在 [0,1]** 时视为沿路径比例，与 **`edgeLabelMidOffset`** 可并存（锚点先按比例再平移）。
+ * `edgeLabel` 子 cell 的 mxGeometry：`relative` + `x,y`（mxGraph：`x` 在 [-1,1] 相对边中心沿路径），可选 `mxPoint as="offset"`（像素平移）。
  */
 export function parseEdgeLabelChildGeometry(
   geo: Record<string, unknown> | undefined,
@@ -167,9 +183,10 @@ export function parseEdgeLabelChildGeometry(
   const labelMx = mxPointByAs(geo, "label");
   if (labelMx && (labelMx.x !== 0 || labelMx.y !== 0)) {
     const { x: lx, y: ly } = labelMx;
-    if (lx >= 0 && lx <= 1) {
+    const t = mxEdgeLabelRelativeXToArcFraction(lx);
+    if (t !== null) {
       const out: Pick<DiagramEdge, "edgeLabelPath" | "edgeLabelMidOffset"> = {
-        edgeLabelPath: { fraction: lx, normalOffset: ly },
+        edgeLabelPath: { fraction: t, normalOffset: ly },
       };
       if (ox !== 0 || oy !== 0) out.edgeLabelMidOffset = { dx: ox, dy: oy };
       return out;
@@ -180,9 +197,10 @@ export function parseEdgeLabelChildGeometry(
   if (strAttr(geo, "relative") === "1") {
     const x = numAttr(geo, "x", 0);
     const y = numAttr(geo, "y", 0);
-    if (x >= 0 && x <= 1) {
+    const t = mxEdgeLabelRelativeXToArcFraction(x);
+    if (t !== null) {
       const out: Pick<DiagramEdge, "edgeLabelPath" | "edgeLabelMidOffset"> = {
-        edgeLabelPath: { fraction: x, normalOffset: y },
+        edgeLabelPath: { fraction: t, normalOffset: y },
       };
       if (ox !== 0 || oy !== 0) out.edgeLabelMidOffset = { dx: ox, dy: oy };
       return out;
