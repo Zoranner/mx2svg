@@ -218,6 +218,18 @@ describe("convert", () => {
     expect(svg).toContain('paint-order="stroke fill"');
   });
 
+  test("edge labelBackgroundColor draws rounded rect under label and skips contrast halo", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="edge cap" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;labelBackgroundColor=#e1d5e7;">',
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain("edge cap");
+    expect(inner).toMatch(/<rect[^>]*rx="4"[^>]*ry="4"[^>]*fill="#e1d5e7"/);
+    expect(inner).not.toContain("paint-order");
+  });
+
   test("edge label uses mxGeometry x y offset from midpoint when relative=1", () => {
     const xml = minimalMxfile
       .replace(

@@ -347,8 +347,25 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
     const displayLabel = softWrap
       ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0)
       : e.label;
+    const labelBgKey = e.style.get("labelbackgroundcolor");
+    const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
+    if (hasLabelBg) {
+      const measureBoxW = Number.isFinite(wrapBoxW) ? wrapBoxW : 1e9;
+      const { width: tw, height: th } = measureVertexLabelDisplayBlock(displayLabel, measureBoxW, fs, 0, softWrap);
+      const pad = 4;
+      const bw = tw + pad * 2;
+      const bh = th + pad * 2;
+      const bx = anchor.x - bw / 2;
+      const by = anchor.y - bh / 2;
+      parts.push(
+        `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"/>`,
+      );
+    }
     parts.push(
-      renderSvgLabelBlock(anchor.x, anchor.y, fs, displayLabel, { contrastStroke: true, fill: labelFill }),
+      renderSvgLabelBlock(anchor.x, anchor.y, fs, displayLabel, {
+        contrastStroke: !hasLabelBg,
+        fill: labelFill,
+      }),
     );
   }
 

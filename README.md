@@ -12,7 +12,7 @@ bun test
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
 - **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`）
-- **`convert/`**：**`convert-output.test.ts`** 写入的 **15+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、标签衬底、边标签比例、双开箭头等），便于逐项打开对照
+- **`convert/`**：**`convert-output.test.ts`** 写入的 **16+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、边标签比例、双开箭头等），便于逐项打开对照
 
 ### 程序化集成（开发中直接使用）
 
@@ -91,6 +91,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 - **样式**：`dashed`；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；箭头 **marker 颜色与 `strokeColor` 一致**；未设 `startArrow` 时起点无箭头。
 - **边标签锚点**：默认路径**总长中点**；**`mxPoint as="label"`** 且 **`x` 在 [0,1]** 时为弧长比例与法向 **`y`** 偏移；**`relative=1`** 且 geometry 带 **`x`/`y`** 时为相对中点的平移。
 - **边标签折行**：**`whiteSpace=wrap`** 时，以 **`mxGeometry` 的 `width`（>0）** 为最大行宽（Pretext）；无 `width` 时使用与字号相关的默认行宽。
+- **边标签衬底**：**`labelBackgroundColor`**（与顶点相同：Pretext 测宽测高后圆角矩形；有衬底时不再加白色描边晕圈）。
 
 ### 标签与文本
 
@@ -102,7 +103,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 ### 已知局限
 
-- 顶点有 **`labelBackgroundColor`**，**边标签尚无衬底**。
+- 顶点与边均支持 **`labelBackgroundColor`**；与 draw.io 的像素级对齐仍依赖 **`fontStyle` / `fontFamily`** 等后续工作。
 - 标签为 **纯文本**，无 HTML 内联粗体/着色等富文本。
 - **`jumpStyle`** 目前仅 **`arc`**。
 - **泳道、表格、`UserObject`、嵌入图片单元、大量内置 stencil** 等未覆盖或未完整建模。
@@ -115,13 +116,13 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 | 档位 | 含义 | 示例 |
 |------|------|------|
-| 小 | 现有管线内增量，常可单 PR | 边 `labelBackgroundColor`；`fontStyle`；`spacing`；更多箭头视觉变体 |
+| 小 | 现有管线内增量，常可单 PR | `fontStyle`；`spacing`；更多箭头视觉变体 |
 | 中 | 多处联动或新抽象 | 其它 `jumpStyle`；更多 `shape`；分组与绘制顺序；可配置字体栈 |
 | 大 | 子项目级 | 泳道；表格；HTML/`foreignObject`；`image`；大范围 stencil |
 
 ### 分阶段计划
 
-- **近期（高性价比）**：边标签衬底；**`fontStyle` / `fontFamily`** 子集与 SVG 对齐；**`spacing`** 与标签边距贴齐编辑器。
+- **近期（高性价比）**：**`fontStyle` / `fontFamily`** 子集与 SVG 对齐；**`spacing`** 与标签边距贴齐编辑器。
 - **中期**：扩展 **`jumpStyle`**、**`shape`** 与箭头；**`parent`** 层级与遮挡；**垂直度量**与多行基线。
 - **长期**：泳道、表格、`UserObject`；富文本与图片单元；**`RenderOptions`** 主题与字体栈。
 

@@ -190,4 +190,14 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("stroke-dasharray");
     dump("15-vertex-dashed", svg);
   });
+
+  test("edge label background", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="labeled" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;labelBackgroundColor=#fff2cc;">',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("#fff2cc");
+    dump("16-edge-label-background", svg);
+  });
 });
