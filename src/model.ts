@@ -13,7 +13,9 @@ export type NodeShape =
   | "trapezoid"
   | "cloud"
   | "document"
-  | "pentagon";
+  | "pentagon"
+  | "dataStorage"
+  | "internalStorage";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

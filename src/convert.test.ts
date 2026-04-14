@@ -122,6 +122,32 @@ describe("convert", () => {
     expect(svg).not.toContain('y="110"');
   });
 
+  test("shape dataStorage renders path with two Q curves", () => {
+    const svg = convert(
+      minimalMxfile.replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=dataStorage;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      ),
+    );
+    expect(svg).toContain("<path ");
+    const ds = [...svg.matchAll(/d="([^"]+)"/g)].map((x) => x[1]);
+    const blob = ds.find((d) => d.includes(" Q ") && d.startsWith("M 112 80"));
+    expect(blob).toBeDefined();
+  });
+
+  test("shape internalStorage draws rect and two divider lines", () => {
+    const svg = convert(
+      minimalMxfile.replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=internalStorage;dx=20;dy=25;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      ),
+    );
+    expect(svg).toContain("<rect ");
+    expect((svg.match(/<line /g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(svg).toContain('y1="105"');
+    expect(svg).toContain('x1="120"');
+  });
+
   test("shape pentagon renders five-sided path", () => {
     const svg = convert(
       minimalMxfile.replace(

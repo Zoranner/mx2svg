@@ -37,6 +37,7 @@ export function shapePathD(
   switch (shape) {
     case "rect":
     case "ellipse":
+    case "internalStorage":
       return null;
     case "rhombus": {
       const cx = x + w / 2;
@@ -89,6 +90,28 @@ export function shapePathD(
       );
     }
     /** 流程图文档：底部波浪；`size` 为底褶高度占高度比例（draw.io 默认约 0.3）。 */
+    /** 流程图数据存储：双曲边（与 draw.io `dataStorage` 一致）。 */
+    case "dataStorage": {
+      const fixed = style?.get("fixedsize") === "1" || style?.get("fixedsize") === "true";
+      const defaultFrac = 0.1;
+      const fixedDefaultPx = 10;
+      let s: number;
+      if (fixed) {
+        const raw = style?.get("size");
+        s = Math.max(0, Math.min(w, Number(raw) || fixedDefaultPx));
+      } else {
+        const raw = style?.get("size");
+        const frac = Number(raw);
+        s = w * Math.max(0, Math.min(1, Number.isFinite(frac) ? frac : defaultFrac));
+      }
+      const x0 = x + s;
+      return (
+        `M ${x0} ${y} L ${x + w} ${y}` +
+        ` Q ${x + w - 2 * s} ${y + h / 2} ${x + w} ${y + h}` +
+        ` L ${x0} ${y + h}` +
+        ` Q ${x0 - 2 * s} ${y + h / 2} ${x0} ${y} Z`
+      );
+    }
     case "pentagon": {
       const cx = x + w / 2;
       const cy = y + h / 2;

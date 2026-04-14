@@ -65,6 +65,12 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "pentagon" || style.has("pentagon")) {
     return "pentagon";
   }
+  if (s === "datastorage" || style.has("datastorage")) {
+    return "dataStorage";
+  }
+  if (s === "internalstorage" || style.has("internalstorage")) {
+    return "internalStorage";
+  }
 
   return "rect";
 }

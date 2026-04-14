@@ -371,6 +371,28 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
     parts.push(
       `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}" stroke-linejoin="round"${dashAttr}/>`,
     );
+  } else if (n.shape === "internalStorage") {
+    const rounded = n.style.get("rounded") === "1" || n.style.get("rounded") === "true";
+    const arcFrac = (Number(n.style.get("arcsize")) || 15) / 100;
+    let inset = 0;
+    if (rounded) {
+      inset = Math.max(inset, Math.min(n.width * arcFrac, n.height * arcFrac));
+    }
+    const dx = Math.max(inset, Math.min(n.width, Number(n.style.get("dx")) || 15));
+    const dy = Math.max(inset, Math.min(n.height, Number(n.style.get("dy")) || 15));
+    const rx = rounded ? Math.min(n.width * arcFrac, n.height * arcFrac) : 0;
+    parts.push(
+      `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
+        stroke,
+      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}/>`,
+    );
+    const lineStroke = esc(stroke);
+    parts.push(
+      `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}" stroke-linecap="round"/>`,
+    );
+    parts.push(
+      `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}" stroke-linecap="round"/>`,
+    );
   } else if (n.shape === "ellipse") {
     const cx = n.x + n.width / 2;
     const cy = n.y + n.height / 2;
