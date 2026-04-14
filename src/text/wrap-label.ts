@@ -1,6 +1,6 @@
 import "./pretext-shim.ts";
 import { layoutWithLines, prepareWithSegments } from "@chenglou/pretext";
-import { canvasFontString, EMPTY_MX_STYLE } from "./mx-font.ts";
+import { canvasFontString, EMPTY_MX_STYLE, mxStyleLabelLineHeightPx } from "./mx-font.ts";
 
 /**
  * 测量即将渲染的标签占位（与 `wrapVertexLabelToBoxWidth` + `renderSvgLabelBlock` + `mx-font` 一致）。
@@ -18,7 +18,7 @@ export function measureVertexLabelDisplayBlock(
   contentMaxWidthPx?: number,
 ): { width: number; height: number } {
   const maxContent = Math.max(1, contentMaxWidthPx ?? boxWidthPx - 2 * horizontalInsetPx);
-  const lineHeight = fontSizePx * 1.2;
+  const lineHeight = mxStyleLabelLineHeightPx(fontSizePx, style);
   const prepared = prepareWithSegments(
     displayText,
     canvasFontString(fontSizePx, style, defaultFontStack),
@@ -46,7 +46,7 @@ export function wrapVertexLabelToBoxWidth(
   contentMaxWidthPx?: number,
 ): string {
   const maxW = Math.max(1, contentMaxWidthPx ?? boxWidthPx - 2 * horizontalInsetPx);
-  const lineHeight = fontSizePx * 1.2;
+  const lineHeight = mxStyleLabelLineHeightPx(fontSizePx, style);
   const prepared = prepareWithSegments(
     label,
     canvasFontString(fontSizePx, style, defaultFontStack),

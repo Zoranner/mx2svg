@@ -55,6 +55,22 @@ export function canvasFontString(
   return parts.join(" ");
 }
 
+/**
+ * 标签行高（像素）：**`lineHeight`** 样式。
+ * - **`≤4`**：相对字号的**倍数**（如 **`1.2`**）；
+ * - **`5～500`**：**百分比**（如 **`120`** = **120%**）；
+ * - 缺省 **1.2×** 字号。
+ */
+export function mxStyleLabelLineHeightPx(fontSizePx: number, style: Map<string, string>): number {
+  const raw = style.get("lineheight")?.trim();
+  if (!raw) return fontSizePx * 1.2;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return fontSizePx * 1.2;
+  if (n <= 4) return fontSizePx * n;
+  if (n <= 500) return (fontSizePx * n) / 100;
+  return fontSizePx * 1.2;
+}
+
 /** 写入 `<text>` 的字体相关属性（已 XML 转义）。 */
 export function svgFontAttrString(
   style: Map<string, string>,
@@ -66,5 +82,10 @@ export function svgFontAttrString(
   if ((bits & MX_FONT_BOLD) !== 0) attrs.push('font-weight="bold"');
   if ((bits & MX_FONT_ITALIC) !== 0) attrs.push('font-style="italic"');
   if ((bits & MX_FONT_UNDERLINE) !== 0) attrs.push('text-decoration="underline"');
+  const lsRaw = style.get("letterspacing")?.trim();
+  if (lsRaw != null && lsRaw !== "") {
+    const ls = Number(lsRaw);
+    if (Number.isFinite(ls)) attrs.push(`letter-spacing="${ls}"`);
+  }
   return attrs.join(" ");
 }

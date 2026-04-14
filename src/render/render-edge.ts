@@ -10,6 +10,7 @@ import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../te
 import { edgeLabelAnchor } from "./edge-label-anchor.ts";
 import {
   edgeLabelBackgroundLayout,
+  edgeLabelClipBounds,
   edgeLabelContentCenter,
   edgeLabelSvgTextAnchor,
   parseEdgeLabelAlignH,
@@ -18,14 +19,18 @@ import {
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
 import {
+  allocRectClipPath,
   colorOr,
   edgeStrokeCapJoinAttr,
   esc,
   fillOpacityAttr,
+  type GradientBuildContext,
   groupOpacityAttr,
   labelBackgroundStrokeAttrs,
   mxPaintColor,
   mxStyleLinkHref,
+  mxStyleNoLabel,
+  mxStyleOverflowHidden,
   strokeDashAttr,
   strokeMiterlimitAttr,
   strokeOpacityAttr,
@@ -33,7 +38,12 @@ import {
   wrapSvgHyperlink,
 } from "./svg-util.ts";
 
-export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: string): string {
+export function renderEdge(
+  e: DiagramEdge,
+  m: EdgeLineMetrics,
+  g: GradientBuildContext,
+  defaultFontStack?: string,
+): string {
   const strokeRaw = mxPaintColor(e.style, "strokecolor", "#000000");
   const sw = strokeWidthPx(e.style, 1);
   const strokeNone = strokeRaw === "none" || sw === 0;
@@ -63,7 +73,7 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
 
   const parts: string[] = [lineEl];
 
-  if (e.label.trim()) {
+  if (e.label.trim() && !mxStyleNoLabel(e.style)) {
     const labelLink = mxStyleLinkHref(e.style);
     const anchor = edgeLabelAnchor(e, m.metricsPolyline);
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
@@ -91,9 +101,10 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
     let tcx = anchor.x;
     let tcy = anchor.y;
     const labelParts: string[] = [];
+    let lay: ReturnType<typeof edgeLabelBackgroundLayout> | null = null;
     if (hasLabelBg) {
       const bgPad = 4;
-      const lay = edgeLabelBackgroundLayout(anchor, tw, th, bgPad, ah, av);
+      lay = edgeLabelBackgroundLayout(anchor, tw, th, bgPad, ah, av);
       tcx = lay.tcx;
       tcy = lay.tcy;
       labelParts.push(
@@ -116,6 +127,11 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
     );
     let labelBlock = labelParts.join("");
     if (labelLink) labelBlock = wrapSvgHyperlink(labelBlock, labelLink);
+    if (mxStyleOverflowHidden(e.style)) {
+      const b = edgeLabelClipBounds(anchor, tw, th, ah, av, hasLabelBg, lay);
+      const clipId = allocRectClipPath(g, b.x, b.y, b.w, b.h);
+      labelBlock = `<g clip-path="url(#${clipId})">${labelBlock}</g>`;
+    }
     parts.push(labelBlock);
   }
 

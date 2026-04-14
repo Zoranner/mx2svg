@@ -34,7 +34,7 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
   const gctx: GradientBuildContext = { fragments: [], nextId: 0 };
   const defaultFontStack = options.defaultFontStack;
   const edgeLayer = page.edges
-    .map((e) => renderEdge(e, edgeMetrics.get(e.id)!, defaultFontStack))
+    .map((e) => renderEdge(e, edgeMetrics.get(e.id)!, gctx, defaultFontStack))
     .join("\n");
   const nodeLayer = page.nodes.map((n) => renderVertex(n, gctx, defaultFontStack)).join("\n");
 

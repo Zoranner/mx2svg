@@ -52,6 +52,11 @@ describe("mx-font", () => {
     expect(s).toContain('text-decoration="underline"');
   });
 
+  test("svgFontAttrString emits letter-spacing when letterSpacing is numeric", () => {
+    const s = svgFontAttrString(style({ letterSpacing: "2.5" }), esc);
+    expect(s).toContain('letter-spacing="2.5"');
+  });
+
   test("canvasFontString order matches CSS font shorthand", () => {
     const c = canvasFontString(12, style({ fontStyle: "3", fontFamily: "Georgia" }));
     expect(c.startsWith("italic bold ")).toBe(true);

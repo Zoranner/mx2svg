@@ -940,6 +940,51 @@ describe("convert", () => {
     expect(svg).toMatch(/clip-path="url\(#mx2svg-clip-\d+\)"/);
   });
 
+  test("vertex noLabel=1 omits label text but keeps shape", () => {
+    const xml = minimalMxfile.replace(
+      'id="2" value="Hello" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"',
+      'id="2" value="Hello" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;nolabel=1;"',
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).not.toContain("Hello");
+    expect(inner).toContain("<rect ");
+  });
+
+  test("edge noLabel=1 omits edge label", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;nolabel=1;">',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).not.toContain("relates");
+    expect(inner).toContain("<polyline");
+  });
+
+  test("vertex multiline lineHeight=200 increases tspan vertical spacing vs default", () => {
+    const base = minimalMxfile.replace('value="Hello"', 'value="Line1&lt;br/&gt;Line2"');
+    const tall = base.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;lineHeight=200;");
+    const tspanYs = (xml: string): number[] => {
+      const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+      return [...inner.matchAll(/<tspan[^>]*\sy="([\d.]+)"/g)].map((m) => Number(m[1]));
+    };
+    const [a, b] = tspanYs(base).sort((x, y) => x - y);
+    const [c, d] = tspanYs(tall).sort((x, y) => x - y);
+    expect(b - a).toBeGreaterThan(0);
+    expect(d - c).toBeGreaterThan(b - a);
+  });
+
+  test("edge overflow=hidden wraps label in clip-path group", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;overflow=hidden;">',
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain("relates");
+    expect(inner).toMatch(/<g clip-path="url\(#mx2svg-clip-\d+\)">/);
+  });
+
   test("edge endSize scales marker definition", () => {
     const xml = minimalMxfile.replace(
       "endArrow=classic;strokeColor=#82b366;",

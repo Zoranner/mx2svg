@@ -1,4 +1,4 @@
-import { EMPTY_MX_STYLE, svgFontAttrString } from "../text/mx-font.ts";
+import { EMPTY_MX_STYLE, mxStyleLabelLineHeightPx, svgFontAttrString } from "../text/mx-font.ts";
 import { esc, textFillOpacityAttr } from "./svg-util.ts";
 
 export interface LabelBlockOpts {
@@ -30,14 +30,14 @@ export function renderSvgLabelBlock(
   const lines = label.split(/\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return "";
 
-  const lh = fs * 1.2;
+  const st = opts?.style ?? EMPTY_MX_STYLE;
+  const lh = mxStyleLabelLineHeightPx(fs, st);
   const escLine = (s: string) => esc(s.trim());
   const fill = esc(opts?.fill ?? "#000000");
   const halo =
     opts?.contrastStroke === true
       ? ' paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"'
       : "";
-  const st = opts?.style ?? EMPTY_MX_STYLE;
   const fontAttrs = svgFontAttrString(st, esc, opts?.defaultFontStack);
   const fontFillOp = textFillOpacityAttr(st);
 

@@ -296,6 +296,12 @@ export function mxStyleOverflowHidden(style: Map<string, string>): boolean {
   return v === "hidden" || v === "clip";
 }
 
+/** **`noLabel=1`**：不渲染 **`value`** 标签（仍保留形状/连线）。 */
+export function mxStyleNoLabel(style: Map<string, string>): boolean {
+  const v = style.get("nolabel");
+  return v === "1" || v === "true";
+}
+
 /** 在 **`defs`** 中登记轴对齐裁剪矩形，返回 **`clipPath` id**。 */
 export function allocRectClipPath(
   g: GradientBuildContext,

@@ -28,6 +28,7 @@ import {
   mxStyleFlipH,
   mxStyleFlipV,
   mxStyleLinkHref,
+  mxStyleNoLabel,
   mxStyleOverflowHidden,
   mxStyleShadowEnabled,
   rectCornerRadius,
@@ -173,7 +174,7 @@ export function renderVertex(
     }
   }
 
-  if (n.label.trim()) {
+  if (n.label.trim() && !mxStyleNoLabel(n.style)) {
     const pad = vertexLabelPaddingFromStyle(n.style);
     const contentMaxW = Math.max(1, n.width - pad.left - pad.right);
     const softWrap = n.style.get("whitespace") === "wrap";

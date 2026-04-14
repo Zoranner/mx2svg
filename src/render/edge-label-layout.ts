@@ -65,3 +65,31 @@ export function edgeLabelBackgroundLayout(
   const tcy = by + bh / 2;
   return { bx, by, bw, bh, tcx, tcy };
 }
+
+/** 边标签 **`overflow=hidden`** 用的轴对齐裁剪框（略扩 **1px** 以免切到笔画）。 */
+export function edgeLabelClipBounds(
+  anchor: { x: number; y: number },
+  tw: number,
+  th: number,
+  ah: EdgeLabelAlignH,
+  av: EdgeLabelAlignV,
+  hasLabelBg: boolean,
+  lay: { bx: number; by: number; bw: number; bh: number } | null,
+  pad = 1,
+): { x: number; y: number; w: number; h: number } {
+  if (hasLabelBg && lay) {
+    return {
+      x: lay.bx - pad,
+      y: lay.by - pad,
+      w: lay.bw + 2 * pad,
+      h: lay.bh + 2 * pad,
+    };
+  }
+  const c = edgeLabelContentCenter(anchor, tw, th, ah, av);
+  return {
+    x: c.x - tw / 2 - pad,
+    y: c.y - th / 2 - pad,
+    w: tw + 2 * pad,
+    h: th + 2 * pad,
+  };
+}

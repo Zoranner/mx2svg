@@ -261,4 +261,38 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("<polyline");
     dump("21-rotated-ellipse-edge-spacing", svg);
   });
+
+  test("edge label overflow hidden (clip)", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="overflow clip" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;overflow=hidden;">',
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/<g clip-path="url\(#mx2svg-clip-\d+\)">/);
+    dump("22-edge-label-overflow-hidden", svg);
+  });
+
+  test("vertex noLabel keeps shape only", () => {
+    const xml = minimalMxfile.replace(
+      'id="2" value="Hello" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"',
+      'id="2" value="Hello" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;nolabel=1;"',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("Circle");
+    const inner = svg.match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).not.toContain("Hello");
+    expect(inner).toContain("<rect ");
+    dump("23-vertex-nolabel", svg);
+  });
+
+  test("vertex letterSpacing and lineHeight on multiline", () => {
+    const xml = minimalMxfile
+      .replace('value="Hello"', 'value="Line1&lt;br/&gt;Line2"')
+      .replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;letterSpacing=2;lineHeight=200;");
+    const svg = convert(xml);
+    expect(svg).toContain('letter-spacing="2"');
+    expect((svg.match(/<tspan/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    dump("24-vertex-letterspacing-lineheight", svg);
+  });
 });
