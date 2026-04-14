@@ -223,7 +223,7 @@ function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const value = strAttr(cell, "value") ?? "";
     const parent = strAttr(cell, "parent") ?? null;
     const labelFields = parseEdgeLabelFields(geoObj);
-    const geoW = numAttr(geoObj, "width", NaN);
+    const geoW = geoObj ? numAttr(geoObj, "width", NaN) : NaN;
     const labelWrapWidth = Number.isFinite(geoW) && geoW > 0 ? geoW : undefined;
 
     edges.push({

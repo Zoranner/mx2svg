@@ -1,48 +1,123 @@
 # mx2svg
 
-将 **draw.io / diagrams.net**（`mxfile` / `mxGraphModel`）XML 转为 **SVG**。全新实现，与历史参考实现（如 drawio2svg）仅在建模概念上对齐，代码独立，**MIT** 许可。
+将 **draw.io / diagrams.net**（`mxfile` / `mxGraphModel`）XML 转为 **SVG**。实现独立于既有工具（如 drawio2svg），仅在「图元 / 几何」概念上可对齐参考；**MIT** 许可。
 
-## 当前能力（阶段 1–6）
-
-- 解析 `<mxfile>` 下单页或多页；支持 **diagram 内压缩 payload**（base64 + raw deflate，与 draw.io 一致）。
-- 解析 **顶点**（`vertex="1"`）与 **mxGeometry**（x, y, width, height、**rotation** 度，绕中心；影响 `viewBox` 与 `transform`）。
-- 样式：`fillColor` / `strokeColor` / `strokeWidth` / `fontSize` / **`fontColor`**（顶点与边标签文字）/ **`labelBackgroundColor`**（顶点标签衬底，Pretext 测宽测高后画圆角矩形）；形状：`rect`、**`ellipse`**（token或 `shape=ellipse`/`circle`）、**`shape=rhombus`/`diamond`、`hexagon`、`pentagon`、`parallelogram`、`cylinder`/`cylinder2`/`cylinder3`、`triangle`（可选 `direction=north|south|east|west`，默认 north）、`trapezoid`、`cloud`、`document`**（`document` 可选 **`size`** 控制底部褶高占高度比例，默认 `0.3`；**标签锚点在折痕上方区域中心**）、**`dataStorage`**（可选 **`size`** 为左侧弧宽：比例或 `fixedSize=1` 时像素）、**`internalStorage`**（矩形 + 分割线，可选 **`dx`/`dy`** 默认 15、**`rounded=1`** 时 **`arcSize`** 百分数圆角，与 draw.io 语义一致）（SVG `path`/`line` 近似，与 draw.io 非像素级一致）。
-- **边**（阶段 2+）：`edge="1"`，从 `mxGeometry` 的 `sourcePoint` / `Array` 中间点 / `targetPoint` 取折线；若无点但有 `source`+`target`，则连接两顶点中心。支持 **`curved=1`**：路径为与 draw.io 一致的 **二次贝塞尔**分段（SVG `<path d="M…Q…">`），标签锚点与 `viewBox` 按曲线密化近似。支持 **`rounded=1`** 且路点不少于 **3** 个时：正交折线 **拐角圆角**（`L` + `Q`，默认弧参数与 draw.io `LINE_ARCSIZE` 一致，可用 **`arcSize`** 覆盖）。支持 **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边 **路点折线** 相交处画跨越弧（`C`三次贝塞尔）；**`noJump=1`** 的边不参与相交检测；**`curved=1`** 或 **`noJump=1`** 的边不画跳线。路径优先级：**跳线** > **曲线** > **圆角** > **折线**。支持 `dashed`、**`endArrow`** / **`startArrow`**：`none`、`open`（空心折线箭头）、`oval`/`dot`、`diamond`，以及 `classic`/`block` 等（实心三角 marker；**颜色与边 `strokeColor` 一致**）；未设 `startArrow` 时起点无箭头。**边标签**（`value`）默认在路径 **总长中点**；若存在 **`mxPoint as="label"`** 且 **`x` 在 [0,1]**，则按该比例取路径上一点并做法向 **`y`** 像素偏移；若 **`relative=1`** 且 geometry 带 **`x`/`y`**，则视为相对中点的平移。样式含 **`whiteSpace=wrap`** 时，边标签按 **`mxGeometry` 的 `width`**（若 >0）为最大行宽折行（与顶点相同用 Pretext 测量）；未给 `width` 时用与字号相关的默认行宽。`fontSize` 默认 11，文本带浅色描边；标签文本与顶点相同经 HTML/实体与多行规则处理。
-- **阶段 3**：矩形 **圆角**（`rounded=1` 比例圆角、`rounded=N` 像素半径、`rounded=0` 关闭；可选 `arcSize`）；顶点与边的 **虚线描边**（`dashed`）；**线性渐变**（`gradientColor` + `gradientDirection`：`north`/`south`/`east`/`west` 及四角别名，`objectBoundingBox`）。
-- **阶段 4**：顶点/边 `value` 中常见 **HTML 片段**与实体 **降级为纯文本**（行内空白折叠）。
-- **阶段 5（子集）**：**显式多行**——`</p>`、`</div>`、`</tr>`、`<br>` 与源码换行等产生逻辑行，SVG 内用 **`<tspan>` 垂直堆叠**并在形状内大致居中。若样式含 **`whiteSpace=wrap`**，顶点标签在框内用 **[Pretext](https://github.com/chenglou/pretext)**（`prepareWithSegments` + `layoutWithLines`）按 **`Arial, Helvetica, sans-serif`** 与字号测量折行；CLI/Bun 下通过 **`@napi-rs/canvas`** 注入 `OffscreenCanvas` 垫片以提供 `measureText`。
-- **阶段 6**：常用 **`shape=*`** 的 path 近似（见上）；`rounded` 仅作用于默认矩形。
-- **仍不渲染**：泳道、表格、UserObject 包装、HTML 内联富文本（仅单元级 `fontColor` / `labelBackgroundColor` 等）、更多 stencil 形状等（见路线图）。
-
-## API
-
-```ts
-import { convert } from "mx2svg";
-
-const svg = convert(xml, { pageIndex: 0, padding: 8, backgroundColor: "#fff" });
-```
-
-另可单独使用 `parseDrawioXml`、`renderToSvg` 做调试或自定义管线。
-
-## 依赖
-
-- `fast-xml-parser`：无 DOM 的 XML 解析（Node / Bun 均可）。
-- `pako`：解压 diagram 内压缩内容。
-- `@chenglou/pretext`：顶点 `whiteSpace=wrap` 时的折行与宽度测量。
-- `@napi-rs/canvas`：在非浏览器环境为 Pretext 提供 Canvas 2D（`OffscreenCanvas` 垫片，见 `src/pretext-shim.ts`）。
-
-## 路线图（分步迭代）
-
-1. **阶段 5+**：更细的垂直度量、与 draw.io 完全一致的字体栈选项等。
-2. **阶段 7+**：更多 `shape=*`（泳道等）、表格等。
-
-## 开发
+## 安装与用法
 
 ```bash
 bun install
 bun test
 ```
 
-## 与 blockplot 集成
+### 程序化集成（开发中直接使用）
 
-可在 `@blockplot/drawio` 中将依赖改为 `file:../mx2svg`，再 `import { convert } from "mx2svg"`（与仓库根目录的相对路径按实际 monorepo 调整）。
+**不需要 CLI**：把 `drawioXml` 当普通字符串传入即可（读文件、接口返回、内联字面量都行）。
+
+```ts
+import { convert } from "mx2svg";
+
+const svg = convert(drawioXml, { pageIndex: 0, padding: 8, backgroundColor: "#fff" });
+// svg 为完整 SVG 文档字符串，可写文件、塞进 HTTP 响应、交给前端展示等
+```
+
+需要改解析/渲染中间步骤时，可拆开使用 **`parseDrawioXml`**（XML → `DiagramDoc`）与 **`renderToSvg`**（`DiagramDoc` → SVG）。类型见 **`DiagramDoc`**、**`DiagramPage`** 等导出。
+
+在 monorepo 里可把依赖写成 `"mx2svg": "workspace:*"` 或 `"file:../mx2svg"`，再同样 `import { convert } from "mx2svg"`。
+
+### 命令行出图（可选，便于目视验证）
+
+- **文件**（默认写出与输入同目录、同主文件名 `.svg`）：
+
+```bash
+bun run render -- path/to/diagram.drawio
+bun run ./src/cli.ts path/to/diagram.drawio -o /path/to/out.svg
+```
+
+- **XML 字符串**（适合脚本与小片段；**无 `-o` 时 SVG 打到标准输出**，便于重定向或管道）。开发与单测共用的最小示例见 **`src/test-fixtures.ts`**（`minimalMxfile`），可复制为文件或拼进 `-s`：
+
+```bash
+bun run ./src/cli.ts -s "<?xml version=\"1.0\"?><mxfile>...</mxfile>"
+bun run ./src/cli.ts -s "<mxfile>...</mxfile>" -o out.svg
+```
+
+- **标准输入**：用 `-` 占位，行为与 `-s` 相同（无 `-o` 则 stdout）。
+
+```bash
+type path\to\diagram.drawio | bun run ./src/cli.ts -
+```
+
+常用选项：`--page <n>`、`--padding <n>`、`--bg <颜色>`；`--help` 查看全部说明。
+
+## 依赖
+
+| 包 | 作用 |
+|----|------|
+| `fast-xml-parser` | 流式友好、无 DOM 的 XML 解析（Node / Bun） |
+| `pako` | 与 draw.io 一致的 diagram 内 **base64 + raw deflate** 解压 |
+| `@chenglou/pretext` | `whiteSpace=wrap` 时顶点与边标签的折行与宽度测量 |
+| `@napi-rs/canvas` | 为非浏览器环境提供 Canvas 2D（`OffscreenCanvas` 垫片，见 `src/pretext-shim.ts`） |
+
+## 功能说明
+
+### 解析与页面
+
+- 读取 `<mxfile>` 下的**单页或多页**。
+- 支持 **diagram 内压缩 payload**（与 diagrams.net 导出一致）。
+
+### 顶点
+
+- **`vertex="1"`** 与 **`mxGeometry`**：位置、宽高、**`rotation`**（度，绕中心；影响 `viewBox` 与 `transform`）。
+- **样式（节选）**：`fillColor`、`strokeColor`、`strokeWidth`、`fontSize`、`fontColor`、**`labelBackgroundColor`**（Pretext 测宽测高后绘制圆角衬底）、矩形 **`rounded`** / **`arcSize`**、**`dashed`**、**线性渐变**（`gradientColor` + `gradientDirection`，`objectBoundingBox`）。
+- **形状**（SVG `path` / `line` 近似，与 draw.io **非像素级**一致）：
+
+  | 类型 | 说明 |
+  |------|------|
+  | 默认 | `rect`；`ellipse`（`ellipse` token 或 `shape=ellipse` / `circle`） |
+  | 多边形 / 流程图常用 | `rhombus`、`diamond`、`hexagon`、`pentagon`、`parallelogram`、`triangle`（`direction`：north / south / east / west）、`trapezoid` |
+  | 其它 | `cylinder` / `cylinder2` / `cylinder3`、`cloud`、`document`（可选 **`size`** 褶高比例，默认 `0.3`；**标签锚点在折痕上方区域中心**）、`dataStorage`（可选 **`size`** 左侧弧；`fixedSize=1` 时为像素）、`internalStorage`（`dx`/`dy`，**`rounded=1`** 时 **`arcSize`**） |
+
+### 边
+
+- **几何**：`sourcePoint` → `Array` 路点 → `targetPoint`；若无点仅有 **`source` + `target`**，则连接两顶点中心。
+- **路由（优先级：跳线 > 曲线 > 圆角 > 折线）**
+  - **`curved=1`**：与 draw.io 一致的**二次贝塞尔**（`<path d="M…Q…">`）；标签与边界框按曲线密化近似。
+  - **`rounded=1`**且路点 ≥ **3**：正交折线拐角 **`L` + `Q`**（默认贴近 `LINE_ARCSIZE`，可用 **`arcSize`** 覆盖）。
+  - **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边**路点折线**求交处画跨越弧（`C`）；**`noJump=1`** 不参与检测；**`curved=1`** 或 **`noJump=1`** 不画跳线。
+- **样式**：`dashed`；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；箭头 **marker 颜色与 `strokeColor` 一致**；未设 `startArrow` 时起点无箭头。
+- **边标签锚点**：默认路径**总长中点**；**`mxPoint as="label"`** 且 **`x` 在 [0,1]** 时为弧长比例与法向 **`y`** 偏移；**`relative=1`** 且 geometry 带 **`x`/`y`** 时为相对中点的平移。
+- **边标签折行**：**`whiteSpace=wrap`** 时，以 **`mxGeometry` 的 `width`（>0）** 为最大行宽（Pretext）；无 `width` 时使用与字号相关的默认行宽。
+
+### 标签与文本
+
+- **`value`** 中常见 **HTML** 经 **`mxLabelToPlainText`** **降级为纯文本**（行内空白折叠）。
+- **显式多行**：`</p>`、`</div>`、`</tr>`、`<br>`、源码换行等 → 多行 **`tspan`**，在形状内大致垂直居中。
+- **顶点 `whiteSpace=wrap`**：框内软折行，测量字体 **`Arial, Helvetica, sans-serif`**（与 SVG 一致）。
+
+## 局限与路线图
+
+### 已知局限
+
+- 顶点有 **`labelBackgroundColor`**，**边标签尚无衬底**。
+- 标签为 **纯文本**，无 HTML 内联粗体/着色等富文本。
+- **`jumpStyle`** 目前仅 **`arc`**。
+- **泳道、表格、`UserObject`、嵌入图片单元、大量内置 stencil** 等未覆盖或未完整建模。
+
+### 进度概览
+
+单页/多页与压缩、顶点与边几何、多种边路由、箭头配色、边标签锚点与折行、常用形状与渐变/虚线/旋转等已具备，**足以覆盖大量流程图与简单架构图**。若要逼近 draw.io 全量文档，中长期缺口主要在 **泳道 / 表格 / 富文本 / stencil 生态**，而非基础折线与形状。
+
+### 工程量分档（便于排期，非承诺）
+
+| 档位 | 含义 | 示例 |
+|------|------|------|
+| 小 | 现有管线内增量，常可单 PR | 边 `labelBackgroundColor`；`fontStyle`；`spacing`；更多箭头视觉变体 |
+| 中 | 多处联动或新抽象 | 其它 `jumpStyle`；更多 `shape`；分组与绘制顺序；可配置字体栈 |
+| 大 | 子项目级 | 泳道；表格；HTML/`foreignObject`；`image`；大范围 stencil |
+
+### 分阶段计划
+
+- **近期（高性价比）**：边标签衬底；**`fontStyle` / `fontFamily`** 子集与 SVG 对齐；**`spacing`** 与标签边距贴齐编辑器。
+- **中期**：扩展 **`jumpStyle`**、**`shape`** 与箭头；**`parent`** 层级与遮挡；**垂直度量**与多行基线。
+- **长期**：泳道、表格、`UserObject`；富文本与图片单元；**`RenderOptions`** 主题与字体栈。
+
+若业务只关心某一类图（如 BPMN 或含表格），建议把该类需求提到近期并**收窄 stencil 范围**，避免一次性做满全库。
