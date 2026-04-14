@@ -87,6 +87,29 @@ describe("convert", () => {
     expect(convert(trap)).toContain('d="M 118 80 L 202 80 L 220 140 L 100 140 Z"');
   });
 
+  test("shape cloud renders closed cubic path", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toMatch(/M 130 95/);
+    expect(svg).toContain(" C ");
+    expect(svg).toMatch(/130 95 Z"/);
+  });
+
+  test("shape document renders wave bottom with Q curves", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=document;size=0.25;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toContain(" Q ");
+    expect(svg).toMatch(/M 100 80 L 220 80 L 220 132\.5/);
+  });
+
   test("shape triangle direction south flips apex", () => {
     const xml = minimalMxfile.replace(
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",

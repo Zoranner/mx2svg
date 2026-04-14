@@ -10,7 +10,9 @@ export type NodeShape =
   | "parallelogram"
   | "cylinder"
   | "triangle"
-  | "trapezoid";
+  | "trapezoid"
+  | "cloud"
+  | "document";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

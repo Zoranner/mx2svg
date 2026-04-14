@@ -50,6 +50,34 @@ export function shapePathD(
       const inset = w * 0.15;
       return `M ${x + inset} ${y} L ${x + w - inset} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
     }
+    /** ER/流程图云：与 draw.io `mxgraph.er.cloud` 背景曲线一致（相对宽高的控制点）。 */
+    case "cloud": {
+      const X = (fx: number, fy: number) => `${x + fx * w} ${y + fy * h}`;
+      return (
+        `M ${X(0.25, 0.25)}` +
+        ` C ${X(0.05, 0.25)} ${X(0, 0.5)} ${X(0.16, 0.55)}` +
+        ` C ${X(0, 0.66)} ${X(0.18, 0.9)} ${X(0.31, 0.8)}` +
+        ` C ${X(0.4, 1)} ${X(0.7, 1)} ${X(0.8, 0.8)}` +
+        ` C ${X(1, 0.8)} ${X(1, 0.6)} ${X(0.875, 0.5)}` +
+        ` C ${X(1, 0.3)} ${X(0.8, 0.1)} ${X(0.625, 0.2)}` +
+        ` C ${X(0.5, 0.05)} ${X(0.3, 0.05)} ${X(0.25, 0.25)} Z`
+      );
+    }
+    /** 流程图文档：底部波浪；`size` 为底褶高度占高度比例（draw.io 默认约 0.3）。 */
+    case "document": {
+      const raw = style?.get("size");
+      let size = raw != null && raw !== "" ? Number(raw) : 0.3;
+      if (!Number.isFinite(size)) size = 0.3;
+      size = Math.max(0, Math.min(1, size));
+      const dy = h * size;
+      const fy = 1.4;
+      return (
+        `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h - dy / 2}` +
+        ` Q ${x + (w * 3) / 4} ${y + h - dy * fy} ${x + w / 2} ${y + h - dy / 2}` +
+        ` Q ${x + w / 4} ${y + h - dy * (1 - fy)} ${x} ${y + h - dy / 2}` +
+        ` L ${x} ${y + dy / 2} Z`
+      );
+    }
     default: {
       const _exhaustive: never = shape;
       return _exhaustive;

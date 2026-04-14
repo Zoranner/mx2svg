@@ -56,6 +56,12 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "trapezoid" || style.has("trapezoid")) {
     return "trapezoid";
   }
+  if (s === "cloud" || style.has("cloud")) {
+    return "cloud";
+  }
+  if (s === "document" || style.has("document")) {
+    return "document";
+  }
 
   return "rect";
 }
