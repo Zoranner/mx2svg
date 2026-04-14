@@ -637,6 +637,33 @@ describe("convert", () => {
     expect(inner).toMatch(/stroke-opacity="0\.35"/);
   });
 
+  test("edge linecap=flat maps to stroke-linecap butt", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;linecap=flat;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/stroke-linecap="butt"/);
+  });
+
+  test("edge linejoin=bevel on polyline", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;linejoin=bevel;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/stroke-linejoin="bevel"/);
+  });
+
+  test("vertex linecap=square on rect stroke", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;linecap=square;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/stroke-linecap="square"/);
+  });
+
   test("vertex fontStyle=1 sets font-weight bold on label", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;fontStyle=1;");
     const svg = convert(xml);

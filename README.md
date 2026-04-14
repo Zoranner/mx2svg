@@ -98,7 +98,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 ### 顶点
 
 - **`vertex="1"`** 与 **`mxGeometry`**：位置、宽高、**`rotation`**（度，绕中心；影响 `viewBox` 与 `transform`）。
-- **样式（节选）**：`fillColor`、`strokeColor`、`strokeWidth`、`fontSize`、`fontColor`、**`labelBackgroundColor`**（测宽测高后圆角衬底）、**`align` / `verticalAlign`**（在内缩标签区内布置标签块，语义与边标签相同；**`document`** 时底边为折痕上方）、**`opacity`**（整图元 `<g>`，与下两项相乘）、**`fillOpacity` / `strokeOpacity`**（style 键 **`fillopacity`**、**`strokeopacity`**；仅作用于填充或描边，数值规则同 **`opacity`**）、矩形 **`rounded`** / **`arcSize`**、**`dashed`**、**线性渐变**（`gradientColor` + `gradientDirection`，`objectBoundingBox`）。
+- **样式（节选）**：`fillColor`、`strokeColor`、`strokeWidth`、`fontSize`、`fontColor`、**`labelBackgroundColor`**（测宽测高后圆角衬底）、**`align` / `verticalAlign`**（在内缩标签区内布置标签块，语义与边标签相同；**`document`** 时底边为折痕上方）、**`opacity`**（整图元 `<g>`，与下两项相乘）、**`fillOpacity` / `strokeOpacity`**（style 键 **`fillopacity`**、**`strokeopacity`**；仅作用于填充或描边，数值规则同 **`opacity`**）、**`linecap` / `linejoin`**（键小写；**`linecap`**：`flat`→SVG `butt`，及 **`square`**、**`round`**；**`linejoin`**：**`miter`**、**`round`**、**`bevel`**；未设时 **`path` 形状**仍为 **`linejoin=round`**，**`rect`/`ellipse`** 不强行改 SVG 默认）、矩形 **`rounded`** / **`arcSize`**、**`dashed`**、**线性渐变**（`gradientColor` + `gradientDirection`，`objectBoundingBox`）。
 - **形状**（SVG `path` / `line` 近似，与 draw.io **非像素级**一致）：
 
   | 类型 | 说明 |
@@ -114,7 +114,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
   - **`curved=1`**：二次贝塞尔（`<path d="M…Q…">`）；标签与边界按曲线密化近似。
   - **`rounded=1`** 且路点 ≥ **3**：正交拐角 **`L` + `Q`**（可用 **`arcSize`** 覆盖默认弧）。
   - **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边**折线路点**求交处画跨越弧；**`noJump=1`** 不参与；**`curved=1`** 或 **`noJump=1`** 不画跳线。
-- **样式**：`dashed`；**`opacity`**（整条边 `<g>`，含箭头与标签）；**`strokeOpacity`**（折线/曲线描边；键 **`strokeopacity`**）；**`fillOpacity`**（若有边标签衬底矩形）；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；marker 与 **`strokeColor`** 一致；未设 **`startArrow`** 则起点无箭头；**`fontSize` / `fontColor` / `fontStyle` / `fontFamily`** 作用于边标签。
+- **样式**：`dashed`；**`linecap` / `linejoin`**（折线/曲线；未设时 **`round`/`round`**，与常见连接器一致）；**`opacity`**（整条边 `<g>`，含箭头与标签）；**`strokeOpacity`**（折线/曲线描边；键 **`strokeopacity`**）；**`fillOpacity`**（若有边标签衬底矩形）；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；marker 与 **`strokeColor`** 一致；未设 **`startArrow`** 则起点无箭头；**`fontSize` / `fontColor` / `fontStyle` / `fontFamily`** 作用于边标签。
 - **`spacing`**：仅在**无**显式 `sourcePoint`/`targetPoint`、解析回退为**中心连线**时生效：穿出形状周界后再内收 **`spacing`**。**`ellipse`**（含旋转）用局部椭圆求交；**`rhombus` / `hexagon` / … / `pentagon`** 与 **`shape-path`** 一致的凸多边形（支持旋转）；**`rect` / `internalStorage`** 等用轴对齐框；旋转矩形在局部未旋转系；**`cylinder` / `cloud` / `document` / `dataStorage`** 等仍用外接框近似。
 - **边标签锚点**：默认路径**中点**；**`mxPoint as="label"`** 且 **`x` ∈ [0,1]** 为弧长比例 + 法向 **`y`**；**`relative=1`** 且带 **`x`/`y`** 为相对中点平移。
 - **边标签折行**：**`whiteSpace=wrap`** 时以 **`mxGeometry` 的 `width`（>0）** 为最大行宽；否则用与字号相关的默认宽。

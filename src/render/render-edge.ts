@@ -18,6 +18,7 @@ import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
 import {
   colorOr,
+  edgeStrokeCapJoinAttr,
   esc,
   fillOpacityAttr,
   groupOpacityAttr,
@@ -35,14 +36,15 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
   const strokeOp = strokeOpacityAttr(e.style);
 
   const pathD = m.pathD;
+  const capJoin = edgeStrokeCapJoinAttr(e.style);
   const lineEl =
     pathD != null
       ? `<path d="${esc(pathD)}" fill="none" stroke="${esc(
           stroke,
-        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`
+        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`
       : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${esc(
           stroke,
-        )}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`;
+        )}" stroke-width="${sw}"${capJoin}${dashAttr}${strokeOp}${markerStart}${markerEnd}/>`;
 
   const parts: string[] = [lineEl];
 

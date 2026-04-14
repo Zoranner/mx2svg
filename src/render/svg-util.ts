@@ -86,6 +86,60 @@ export function strokeOpacityAttr(style: Map<string, string>): string {
   return ` stroke-opacity="${u}"`;
 }
 
+/** mxGraph **`linecap`**（键 **`linecap`**）→ SVG：`flat` → `butt`。无效时返回 **`null`**。 */
+export function svgLinecapFromMxStyle(style: Map<string, string>): string | null {
+  const raw = style.get("linecap");
+  if (raw == null || raw === "") return null;
+  const t = raw.toLowerCase().trim();
+  if (t === "flat") return "butt";
+  if (t === "square" || t === "round") return t;
+  return null;
+}
+
+/** mxGraph **`linejoin`**（键 **`linejoin`**）→ SVG：`miter` | `round` | `bevel`。无效时返回 **`null`**。 */
+export function svgLinejoinFromMxStyle(style: Map<string, string>): string | null {
+  const raw = style.get("linejoin");
+  if (raw == null || raw === "") return null;
+  const t = raw.toLowerCase().trim();
+  if (t === "miter" || t === "round" || t === "bevel") return t;
+  return null;
+}
+
+/**
+ * 边 **`path` / `polyline`**：未设时与当前默认一致（**`round` / `round`**），与 draw.io 常见连接器一致。
+ */
+export function edgeStrokeCapJoinAttr(style: Map<string, string>): string {
+  const cap = svgLinecapFromMxStyle(style) ?? "round";
+  const join = svgLinejoinFromMxStyle(style) ?? "round";
+  return ` stroke-linecap="${cap}" stroke-linejoin="${join}"`;
+}
+
+/** 顶点 **`path`**：默认 **`linejoin=round`**（与形状折角一致）；`linecap` 仅在有样式时输出。 */
+export function vertexPathStrokeCapJoinAttr(style: Map<string, string>): string {
+  const join = svgLinejoinFromMxStyle(style) ?? "round";
+  const cap = svgLinecapFromMxStyle(style);
+  const capAttr = cap != null ? ` stroke-linecap="${cap}"` : "";
+  return ` stroke-linejoin="${join}"${capAttr}`;
+}
+
+/**
+ * 顶点 **`rect` / `ellipse` / `line`**：无默认；仅当 style 中设置了 **`linecap`**或 **`linejoin`** 时追加。
+ */
+export function vertexOptionalStrokeCapJoinAttr(style: Map<string, string>): string {
+  const cap = svgLinecapFromMxStyle(style);
+  const join = svgLinejoinFromMxStyle(style);
+  let s = "";
+  if (cap != null) s += ` stroke-linecap="${cap}"`;
+  if (join != null) s += ` stroke-linejoin="${join}"`;
+  return s;
+}
+
+/** 与 `vertexOptionalStrokeCapJoinAttr` 相同，用于 **`line`**（无 `linejoin` 时忽略）。 */
+export function vertexLineStrokeCapAttr(style: Map<string, string>, defaultCap: string): string {
+  const cap = svgLinecapFromMxStyle(style) ?? defaultCap;
+  return ` stroke-linecap="${cap}"`;
+}
+
 /** 矩形圆角：`rounded=1` 为比例圆角；`rounded=N` 为像素半径；`rounded=0` 关闭。 */
 export function rectCornerRadius(style: Map<string, string>, w: number, h: number): number {
   const r = style.get("rounded");

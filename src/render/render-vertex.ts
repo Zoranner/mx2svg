@@ -19,6 +19,9 @@ import {
   rectCornerRadius,
   strokeDashAttr,
   strokeOpacityAttr,
+  vertexLineStrokeCapAttr,
+  vertexOptionalStrokeCapJoinAttr,
+  vertexPathStrokeCapJoinAttr,
 } from "./svg-util.ts";
 
 export function renderVertex(
@@ -38,9 +41,13 @@ export function renderVertex(
   const parts: string[] = [];
 
   const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height, n.style);
+  const pathCapJoin = vertexPathStrokeCapJoinAttr(n.style);
+  const shapeCapJoin = vertexOptionalStrokeCapJoinAttr(n.style);
+  const lineCap = vertexLineStrokeCapAttr(n.style, "round");
+
   if (pathD) {
     parts.push(
-      `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}" stroke-linejoin="round"${dashAttr}${paint2d}/>`,
+      `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${pathCapJoin}${dashAttr}${paint2d}/>`,
     );
   } else if (n.shape === "internalStorage") {
     const rounded = n.style.get("rounded") === "1" || n.style.get("rounded") === "true";
@@ -55,14 +62,14 @@ export function renderVertex(
     parts.push(
       `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
         stroke,
-      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${paint2d}/>`,
+      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}/>`,
     );
     const lineStroke = esc(stroke);
     parts.push(
-      `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}" stroke-linecap="round"${strokeOp}/>`,
+      `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
     );
     parts.push(
-      `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}" stroke-linecap="round"${strokeOp}/>`,
+      `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
     );
   } else if (n.shape === "ellipse") {
     const cx = n.x + n.width / 2;
@@ -70,14 +77,14 @@ export function renderVertex(
     const rx = n.width / 2;
     const ry = n.height / 2;
     parts.push(
-      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}${paint2d}/>`,
+      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}"${dashAttr}${shapeCapJoin}${paint2d}/>`,
     );
   } else {
     const rx = rectCornerRadius(n.style, n.width, n.height);
     parts.push(
       `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
         stroke,
-      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${paint2d}/>`,
+      )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}/>`,
     );
   }
 
