@@ -7,6 +7,12 @@ import {
 } from "../edge/edge-arrow.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../text/wrap-label.ts";
 import { edgeLabelAnchor } from "./edge-label-anchor.ts";
+import {
+  edgeLabelBackgroundLayout,
+  edgeLabelContentCenter,
+  parseEdgeLabelAlignH,
+  parseEdgeLabelAlignV,
+} from "./edge-label-layout.ts";
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
 import { colorOr, esc, strokeDashAttr } from "./svg-util.ts";
@@ -41,30 +47,37 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
     const displayLabel = softWrap
       ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0, e.style, defaultFontStack)
       : e.label;
+    const measureBoxW = Number.isFinite(wrapBoxW) ? wrapBoxW : 1e9;
+    const { width: tw, height: th } = measureVertexLabelDisplayBlock(
+      displayLabel,
+      measureBoxW,
+      fs,
+      0,
+      softWrap,
+      e.style,
+      defaultFontStack,
+    );
+    const ah = parseEdgeLabelAlignH(e.style);
+    const av = parseEdgeLabelAlignV(e.style);
     const labelBgKey = e.style.get("labelbackgroundcolor");
     const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
+    let tcx = anchor.x;
+    let tcy = anchor.y;
     if (hasLabelBg) {
-      const measureBoxW = Number.isFinite(wrapBoxW) ? wrapBoxW : 1e9;
-      const { width: tw, height: th } = measureVertexLabelDisplayBlock(
-        displayLabel,
-        measureBoxW,
-        fs,
-        0,
-        softWrap,
-        e.style,
-        defaultFontStack,
-      );
       const pad = 4;
-      const bw = tw + pad * 2;
-      const bh = th + pad * 2;
-      const bx = anchor.x - bw / 2;
-      const by = anchor.y - bh / 2;
+      const lay = edgeLabelBackgroundLayout(anchor, tw, th, pad, ah, av);
+      tcx = lay.tcx;
+      tcy = lay.tcy;
       parts.push(
-        `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"/>`,
+        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"/>`,
       );
+    } else {
+      const c = edgeLabelContentCenter(anchor, tw, th, ah, av);
+      tcx = c.x;
+      tcy = c.y;
     }
     parts.push(
-      renderSvgLabelBlock(anchor.x, anchor.y, fs, displayLabel, {
+      renderSvgLabelBlock(tcx, tcy, fs, displayLabel, {
         contrastStroke: !hasLabelBg,
         fill: labelFill,
         style: e.style,

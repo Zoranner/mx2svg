@@ -286,6 +286,54 @@ describe("convert", () => {
     expect(svg).toContain('paint-order="stroke fill"');
   });
 
+  test("edge label align=left moves text right of default center; align=right moves left", () => {
+    const base = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;">',
+    );
+    const left = base.replace("fontSize=11;", "fontSize=11;align=left;");
+    const right = base.replace("fontSize=11;", "fontSize=11;align=right;");
+    const innerC = convert(base).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerL = convert(left).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerR = convert(right).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const xC = Number(innerC.match(/<text[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
+    const xL = Number(innerL.match(/<text[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
+    const xR = Number(innerR.match(/<text[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
+    expect(xL).toBeGreaterThan(xC);
+    expect(xR).toBeLessThan(xC);
+  });
+
+  test("edge label verticalAlign=top moves text down; verticalAlign=bottom moves up", () => {
+    const base = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;">',
+    );
+    const top = base.replace("fontSize=11;", "fontSize=11;verticalAlign=top;");
+    const bottom = base.replace("fontSize=11;", "fontSize=11;verticalAlign=bottom;");
+    const innerC = convert(base).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerT = convert(top).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerB = convert(bottom).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const yC = Number(innerC.match(/<text[^>]*\sy="([\d.]+)"/)?.[1] ?? NaN);
+    const yT = Number(innerT.match(/<text[^>]*\sy="([\d.]+)"/)?.[1] ?? NaN);
+    const yB = Number(innerB.match(/<text[^>]*\sy="([\d.]+)"/)?.[1] ?? NaN);
+    expect(yT).toBeGreaterThan(yC);
+    expect(yB).toBeLessThan(yC);
+  });
+
+  test("edge label align=left with labelBackgroundColor shifts rect to the right of centered case", () => {
+    const centered = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="edge cap" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;labelBackgroundColor=#e1d5e7;">',
+    );
+    const left = centered.replace("fontSize=11;", "fontSize=11;align=left;");
+    const innerC =
+      convert(centered).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerL = convert(left).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const rxC = Number(innerC.match(/<rect[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
+    const rxL = Number(innerL.match(/<rect[^>]*\sx="([\d.]+)"/)?.[1] ?? NaN);
+    expect(rxL).toBeGreaterThan(rxC);
+  });
+
   test("edge labelPadding offsets label perpendicular to path", () => {
     const xml = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
