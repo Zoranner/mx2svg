@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { parseEndArrow, parseStartArrow } from "./edge-arrow.ts";
+import {
+  arrowMarkerId,
+  buildArrowMarkerDefs,
+  parseEndArrow,
+  parseStartArrow,
+} from "./edge-arrow.ts";
+import type { DiagramEdge } from "./model.ts";
 
 describe("edge-arrow", () => {
   test("parseEndArrow defaults to filled", () => {
@@ -27,5 +33,27 @@ describe("edge-arrow", () => {
   test("parseStartArrow mirrors end tokens", () => {
     const s = new Map<string, string>([["startarrow", "open"]]);
     expect(parseStartArrow(s)).toBe("open");
+  });
+
+  test("arrowMarkerId encodes stroke hex slug", () => {
+    expect(arrowMarkerId("filled", "end", "#82b366")).toBe("mx2svg-am-filled-end-82b366");
+  });
+
+  test("buildArrowMarkerDefs uses edge stroke in marker fill", () => {
+    const e: DiagramEdge = {
+      id: "e1",
+      parentId: "1",
+      source: "a",
+      target: "b",
+      label: "",
+      points: [],
+      style: new Map([
+        ["endarrow", "classic"],
+        ["strokecolor", "#ff0000"],
+      ]),
+    };
+    const defs = buildArrowMarkerDefs([e]);
+    expect(defs).toContain('id="mx2svg-am-filled-end-ff0000"');
+    expect(defs).toContain('fill="#ff0000"');
   });
 });

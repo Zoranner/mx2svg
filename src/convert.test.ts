@@ -182,7 +182,7 @@ describe("convert", () => {
       "startArrow=classic;endArrow=classic;strokeColor=#82b366;",
     );
     const svg = convert(xml);
-    expect(svg).toContain('marker-start="url(#mx2svg-arrow-start)"');
+    expect(svg).toContain('marker-start="url(#mx2svg-am-filled-start-82b366)"');
     expect(svg).toContain("marker-end");
   });
 
@@ -191,7 +191,7 @@ describe("convert", () => {
       "endArrow=classic;strokeColor=#82b366;",
       "endArrow=open;strokeColor=#82b366;",
     );
-    expect(convert(xml)).toContain('marker-end="url(#mx2svg-arrow-open-end)"');
+    expect(convert(xml)).toContain('marker-end="url(#mx2svg-am-open-end-82b366)"');
   });
 
   test("endArrow=none omits marker-end on edge geometry", () => {
@@ -210,8 +210,8 @@ describe("convert", () => {
       "startArrow=open;endArrow=open;strokeColor=#82b366;",
     );
     const svg = convert(xml);
-    expect(svg).toContain('marker-start="url(#mx2svg-arrow-open-start)"');
-    expect(svg).toContain('marker-end="url(#mx2svg-arrow-open-end)"');
+    expect(svg).toContain('marker-start="url(#mx2svg-am-open-start-82b366)"');
+    expect(svg).toContain('marker-end="url(#mx2svg-am-open-end-82b366)"');
   });
 
   test("renders edge label at midpoint of polyline with contrast stroke", () => {

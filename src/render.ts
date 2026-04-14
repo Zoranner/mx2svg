@@ -13,7 +13,7 @@ import {
 } from "./edge-rounded.ts";
 import type { DiagramDoc, DiagramEdge, DiagramNode } from "./model.ts";
 import {
-  ARROW_MARKER_DEFS,
+  buildArrowMarkerDefs,
   markerEndAttr,
   markerStartAttr,
   parseEndArrow,
@@ -323,8 +323,8 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
   const dashAttr = strokeDashAttr(e.style);
-  const markerEnd = markerEndAttr(parseEndArrow(e.style));
-  const markerStart = markerStartAttr(parseStartArrow(e.style));
+  const markerEnd = markerEndAttr(parseEndArrow(e.style), stroke);
+  const markerStart = markerStartAttr(parseStartArrow(e.style), stroke);
 
   const pathD = m.pathD;
   const lineEl =
@@ -461,7 +461,7 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
 
   const gradientBlock =
     gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
-  const defsInner = [ARROW_MARKER_DEFS, gradientBlock].filter(Boolean).join("\n  ");
+  const defsInner = [buildArrowMarkerDefs(page.edges), gradientBlock].filter(Boolean).join("\n  ");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}">
