@@ -12,7 +12,7 @@ bun test
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
 - **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`、`font-stack-stdout.svg`）
-- **`convert/`**：**`convert-output.test.ts`** 写入的 **18+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**、边标签比例、双开箭头等），便于逐项打开对照
+- **`convert/`**：**`convert-output.test.ts`** 写入的 **19+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边 **`spacing`**、**`labelPadding`**、边标签比例、双开箭头等），便于逐项打开对照
 
 ### 程序化集成（开发中直接使用）
 
@@ -97,6 +97,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 - **`spacing`**：仅当边 **没有** 显式 `sourcePoint`/`targetPoint`（解析回退为 **源/目标中心连线**）时生效：沿连线穿出形状周界后，两端再各内收 `spacing` 像素。**矩形**（及非椭圆类形状）：轴对齐框；**`ellipse`**：椭圆；**旋转 ≠ 0 的矩形**：在 **局部未旋转坐标系** 内按框求交（与 SVG `transform="rotate(...)"` 一致）；**旋转椭圆** 仍用 **外接轴对齐框** 近似；其它多边形仍用外接框。
 - **边标签锚点**：默认路径**总长中点**；**`mxPoint as="label"`** 且 **`x` 在 [0,1]** 时为弧长比例与法向 **`y`** 偏移；**`relative=1`** 且 geometry 带 **`x`/`y`** 时为相对中点的平移。
 - **边标签折行**：**`whiteSpace=wrap`** 时，以 **`mxGeometry` 的 `width`（>0）** 为最大行宽（Pretext）；无 `width` 时使用与字号相关的默认行宽。
+- **边标签与路径间距**：**`labelPadding`**（像素）叠加在锚点法向偏移上（与 **`mxPoint as="label"`** 的 `y` 分量、`relative` 中点几何同向）；**绝对 `label` 坐标**（`x` 不在 [0,1]）不参与法向叠加。
 - **边标签衬底**：**`labelBackgroundColor`**（与顶点相同：Pretext 测宽测高后圆角矩形；有衬底时不再加白色描边晕圈）。
 
 ### 标签与文本
@@ -128,7 +129,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 ### 分阶段计划
 
-- **近期（高性价比）**：边标签与路径的 **边距** 更贴齐编辑器；**多边形真实周界** 与 **旋转椭圆** 的 `spacing`。
+- **近期（高性价比）**：**多边形真实周界** 与 **旋转椭圆** 的 `spacing`；边标签 **`align`** 等细项。
 - **中期**：扩展 **`jumpStyle`**、**`shape`** 与箭头；**`parent`** 层级与遮挡；**垂直度量**与多行基线。
 - **长期**：泳道、表格、`UserObject`；富文本与图片单元；**`RenderOptions`** 主题与字体栈。
 

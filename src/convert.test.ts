@@ -236,6 +236,19 @@ describe("convert", () => {
     expect(svg).toContain('paint-order="stroke fill"');
   });
 
+  test("edge labelPadding offsets label perpendicular to path", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="relates" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;labelPadding=18;">',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("relates");
+    const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const yAttr = inner.match(/<text[^>]*\sy="([\d.]+)"/)?.[1];
+    expect(yAttr).toBeDefined();
+    expect(Number(yAttr)).not.toBeCloseTo(115, 0);
+  });
+
   test("edge labelBackgroundColor draws rounded rect under label and skips contrast halo", () => {
     const xml = minimalMxfile.replace(
       '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',

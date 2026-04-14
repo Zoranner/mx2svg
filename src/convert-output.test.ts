@@ -221,4 +221,14 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("<polyline");
     dump("18-edge-spacing", svg);
   });
+
+  test("edge label padding", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="pad" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;fontSize=11;labelPadding=14;">',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("pad");
+    dump("19-edge-label-padding", svg);
+  });
 });

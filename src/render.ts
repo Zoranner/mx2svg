@@ -264,25 +264,41 @@ function bounds(
   return { minX, minY, maxX, maxY };
 }
 
+/** draw.io `labelPadding`：沿路径法向偏移（像素），与 `polylinePointWithPerpendicularOffset` 正方向一致。 */
+function edgeLabelPaddingPx(style: Map<string, string>): number {
+  const raw = style.get("labelpadding");
+  if (raw == null || raw === "") return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function edgeLabelAnchor(e: DiagramEdge, metrics: { x: number; y: number }[]): { x: number; y: number } {
   if (metrics.length < 2) {
     return metrics[0] ?? { x: 0, y: 0 };
   }
+  const pad = edgeLabelPaddingPx(e.style);
+
   if (e.edgeLabelPath) {
     return polylinePointWithPerpendicularOffset(
       metrics,
       e.edgeLabelPath.fraction,
-      e.edgeLabelPath.normalOffset,
+      e.edgeLabelPath.normalOffset + pad,
     );
   }
   if (e.edgeLabelMidOffset) {
-    const mid = polylinePointAtLengthFraction(metrics, 0.5);
-    return { x: mid.x + e.edgeLabelMidOffset.dx, y: mid.y + e.edgeLabelMidOffset.dy };
+    const base =
+      pad === 0
+        ? polylinePointAtLengthFraction(metrics, 0.5)
+        : polylinePointWithPerpendicularOffset(metrics, 0.5, pad);
+    return { x: base.x + e.edgeLabelMidOffset.dx, y: base.y + e.edgeLabelMidOffset.dy };
   }
   if (e.labelPosition) {
     return e.labelPosition;
   }
-  return polylinePointAtLengthFraction(metrics, 0.5);
+  if (pad === 0) {
+    return polylinePointAtLengthFraction(metrics, 0.5);
+  }
+  return polylinePointWithPerpendicularOffset(metrics, 0.5, pad);
 }
 
 interface LabelBlockOpts {
