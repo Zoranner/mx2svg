@@ -25,6 +25,31 @@ export function vertexLabelCenter(
   return { cx: x + w / 2, cy: y + h / 2 };
 }
 
+/**
+ * 顶点标签排版用的轴对齐矩形（内缩 **`inset`**，与 `wrap-label` 一致）。
+ * **`document`** 时底边落在折痕上方，不含波浪区域。
+ */
+export function vertexLabelLayoutRect(
+  shape: NodeShape,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  style: Map<string, string>,
+  inset: number,
+): { left: number; right: number; top: number; bottom: number } {
+  let bottom = y + h - inset;
+  if (shape === "document") {
+    bottom = y + h - documentWaveDy(h, style) - inset;
+  }
+  return {
+    left: x + inset,
+    right: x + w - inset,
+    top: y + inset,
+    bottom,
+  };
+}
+
 /** 与 bbox 对齐的简单 path（绝对坐标），供 `shape=*` 顶点填充与描边。 */
 export function shapePathD(
   shape: NodeShape,

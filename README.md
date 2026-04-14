@@ -98,7 +98,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 ### 顶点
 
 - **`vertex="1"`** 与 **`mxGeometry`**：位置、宽高、**`rotation`**（度，绕中心；影响 `viewBox` 与 `transform`）。
-- **样式（节选）**：`fillColor`、`strokeColor`、`strokeWidth`、`fontSize`、`fontColor`、**`labelBackgroundColor`**（测宽测高后圆角衬底）、矩形 **`rounded`** / **`arcSize`**、**`dashed`**、**线性渐变**（`gradientColor` + `gradientDirection`，`objectBoundingBox`）。
+- **样式（节选）**：`fillColor`、`strokeColor`、`strokeWidth`、`fontSize`、`fontColor`、**`labelBackgroundColor`**（测宽测高后圆角衬底）、**`align` / `verticalAlign`**（在内缩标签区内布置标签块，语义与边标签相同；**`document`** 时底边为折痕上方）、矩形 **`rounded`** / **`arcSize`**、**`dashed`**、**线性渐变**（`gradientColor` + `gradientDirection`，`objectBoundingBox`）。
 - **形状**（SVG `path` / `line` 近似，与 draw.io **非像素级**一致）：
 
   | 类型 | 说明 |

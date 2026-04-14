@@ -1,6 +1,13 @@
 import type { DiagramNode } from "../core/model.ts";
-import { shapePathD, vertexLabelCenter } from "../shape/shape-path.ts";
+import { shapePathD, vertexLabelLayoutRect } from "../shape/shape-path.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../text/wrap-label.ts";
+import {
+  edgeLabelBackgroundLayout,
+  edgeLabelContentCenter,
+  edgeLabelSvgTextAnchor,
+  parseEdgeLabelAlignH,
+  parseEdgeLabelAlignV,
+} from "./edge-label-layout.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
 import type { GradientBuildContext } from "./svg-util.ts";
 import { allocFill, colorOr, esc, rectCornerRadius, strokeDashAttr } from "./svg-util.ts";
@@ -63,35 +70,57 @@ export function renderVertex(
   }
 
   if (n.label.trim()) {
-    const { cx: tx, cy: ty } = vertexLabelCenter(n.shape, n.x, n.y, n.width, n.height, n.style);
     const labelInset = 8;
     const softWrap = n.style.get("whitespace") === "wrap";
     const wrap = softWrap
       ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset, n.style, defaultFontStack)
       : n.label;
-    const labelBg = colorOr(n.style, "labelbackgroundcolor", "");
-    if (labelBg && labelBg !== "none") {
-      const { width: tw, height: th } = measureVertexLabelDisplayBlock(
-        wrap,
-        n.width,
-        fs,
-        labelInset,
-        softWrap,
-        n.style,
-        defaultFontStack,
-      );
+    const { width: tw, height: th } = measureVertexLabelDisplayBlock(
+      wrap,
+      n.width,
+      fs,
+      labelInset,
+      softWrap,
+      n.style,
+      defaultFontStack,
+    );
+    const rect = vertexLabelLayoutRect(n.shape, n.x, n.y, n.width, n.height, n.style, labelInset);
+    const ah = parseEdgeLabelAlignH(n.style);
+    const av = parseEdgeLabelAlignV(n.style);
+    let ax = (rect.left + rect.right) / 2;
+    let ay = (rect.top + rect.bottom) / 2;
+    if (ah === "left") ax = rect.left;
+    else if (ah === "right") ax = rect.right;
+    if (av === "top") ay = rect.top;
+    else if (av === "bottom") ay = rect.bottom;
+    const anchor = { x: ax, y: ay };
+
+    const labelBgKey = colorOr(n.style, "labelbackgroundcolor", "");
+    const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
+    let tcx: number;
+    let tcy: number;
+    if (hasLabelBg) {
       const pad = 4;
-      const bw = tw + pad * 2;
-      const bh = th + pad * 2;
-      const bx = tx - bw / 2;
-      const by = ty - bh / 2;
+      const lay = edgeLabelBackgroundLayout(anchor, tw, th, pad, ah, av);
+      tcx = lay.tcx;
+      tcy = lay.tcy;
       parts.push(
-        `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${esc(labelBg)}"/>`,
+        `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="4" ry="4" fill="${esc(labelBgKey)}"/>`,
       );
+    } else {
+      const c = edgeLabelContentCenter(anchor, tw, th, ah, av);
+      tcx = c.x;
+      tcy = c.y;
     }
     const labelFill = colorOr(n.style, "fontcolor", "#000000");
     parts.push(
-      renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill, style: n.style, defaultFontStack }),
+      renderSvgLabelBlock(tcx, tcy, fs, wrap, {
+        fill: labelFill,
+        style: n.style,
+        defaultFontStack,
+        textAnchor: edgeLabelSvgTextAnchor(ah),
+        contentWidth: tw,
+      }),
     );
   }
 

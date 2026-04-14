@@ -524,6 +524,49 @@ describe("convert", () => {
     expect(svg).toMatch(/<rect[^>]*rx="4"[^>]*ry="4"[^>]*fill="#e1d5e7"/);
   });
 
+  test("vertex label align=left sets text-anchor start", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;",
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain("Hello");
+    expect(inner).toMatch(/text-anchor="start"/);
+  });
+
+  test("vertex label verticalAlign=top moves text up (smaller y) vs middle", () => {
+    const base = minimalMxfile;
+    const top = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;",
+    );
+    const innerC = convert(base).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerT = convert(top).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const yC = Number(innerC.match(/<text[^>]*\sy="([\d.]+)"/)?.[1] ?? NaN);
+    const yT = Number(innerT.match(/<text[^>]*\sy="([\d.]+)"/)?.[1] ?? NaN);
+    expect(yT).toBeLessThan(yC);
+  });
+
+  test("vertex align=left with labelBackgroundColor shifts label rect left of centered case", () => {
+    const centered = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;labelBackgroundColor=#e1d5e7;",
+    );
+    const left = centered.replace(
+      "labelBackgroundColor=#e1d5e7;",
+      "align=left;labelBackgroundColor=#e1d5e7;",
+    );
+    const innerC = convert(centered).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerL = convert(left).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const labelRectX = (inner: string) =>
+      Number(
+        inner.match(/<rect[^>]*fill="#e1d5e7"[^>]*\sx="([\d.]+)"/)?.[1] ??
+          inner.match(/<rect[^>]*\sx="([\d.]+)"[^>]*fill="#e1d5e7"/)?.[1] ??
+          NaN,
+      );
+    expect(labelRectX(innerL)).toBeLessThan(labelRectX(innerC));
+  });
+
   test("vertex mxGeometry rotation wraps group in svg rotate around center", () => {
     const xml = minimalMxfile.replace(
       '<mxGeometry x="100" y="80" width="120" height="60" as="geometry"/>',
