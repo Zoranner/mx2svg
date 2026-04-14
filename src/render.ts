@@ -32,6 +32,11 @@ export interface RenderOptions {
   pageIndex?: number;
   padding?: number;
   backgroundColor?: string;
+  /**
+   * 未设置 `fontFamily`（或 `default`）的单元格使用的 `font-family` 栈，与 draw.io 主题/嵌入场景对齐。
+   * 例：`"Inter, system-ui, sans-serif"`。不设时与库内 `Arial, Helvetica, sans-serif` 一致。
+   */
+  defaultFontStack?: string;
 }
 
 function esc(s: string): string {
@@ -287,6 +292,8 @@ interface LabelBlockOpts {
   fill?: string;
   /** 用于 `fontStyle` / `fontFamily` 等与 `mx-font` 一致 */
   style?: Map<string, string>;
+  /** 与 `RenderOptions.defaultFontStack` 一致 */
+  defaultFontStack?: string;
 }
 
 /** 形状内居中标签：单行用 dominant-baseline；多行用绝对 y 的 tspan 垂直居中。 */
@@ -307,7 +314,7 @@ function renderSvgLabelBlock(
     opts?.contrastStroke === true
       ? ' paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"'
       : "";
-  const fontAttrs = svgFontAttrString(opts?.style ?? EMPTY_MX_STYLE, esc);
+  const fontAttrs = svgFontAttrString(opts?.style ?? EMPTY_MX_STYLE, esc, opts?.defaultFontStack);
 
   if (lines.length === 1) {
     return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${halo}>${escLine(
@@ -322,7 +329,7 @@ function renderSvgLabelBlock(
   return `<text text-anchor="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${halo}>${tspans}</text>`;
 }
 
-function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
+function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: string): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
   const sw = Number(e.style.get("strokewidth") ?? "1") || 1;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
@@ -349,7 +356,7 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
     const wrapBoxW =
       e.labelWrapWidth ?? (softWrap ? Math.max(56, Math.round(fs * 6.5)) : Number.POSITIVE_INFINITY);
     const displayLabel = softWrap
-      ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0, e.style)
+      ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0, e.style, defaultFontStack)
       : e.label;
     const labelBgKey = e.style.get("labelbackgroundcolor");
     const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
@@ -362,6 +369,7 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
         0,
         softWrap,
         e.style,
+        defaultFontStack,
       );
       const pad = 4;
       const bw = tw + pad * 2;
@@ -377,6 +385,7 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
         contrastStroke: !hasLabelBg,
         fill: labelFill,
         style: e.style,
+        defaultFontStack,
       }),
     );
   }
@@ -384,7 +393,7 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
   return `<g data-mx2svg-edge="${esc(e.id)}">${parts.join("")}</g>`;
 }
 
-function renderNode(n: DiagramNode, g: GradientBuildContext): string {
+function renderNode(n: DiagramNode, g: GradientBuildContext, defaultFontStack?: string): string {
   const fillSolid = colorOr(n.style, "fillcolor", "#dae8fc");
   const fill = allocFill(n.style, fillSolid, g);
   const stroke = colorOr(n.style, "strokecolor", "#6c8ebf");
@@ -441,7 +450,9 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
     const { cx: tx, cy: ty } = vertexLabelCenter(n.shape, n.x, n.y, n.width, n.height, n.style);
     const labelInset = 8;
     const softWrap = n.style.get("whitespace") === "wrap";
-    const wrap = softWrap ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset, n.style) : n.label;
+    const wrap = softWrap
+      ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset, n.style, defaultFontStack)
+      : n.label;
     const labelBg = colorOr(n.style, "labelbackgroundcolor", "");
     if (labelBg && labelBg !== "none") {
       const { width: tw, height: th } = measureVertexLabelDisplayBlock(
@@ -451,6 +462,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
         labelInset,
         softWrap,
         n.style,
+        defaultFontStack,
       );
       const pad = 4;
       const bw = tw + pad * 2;
@@ -462,7 +474,9 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
       );
     }
     const labelFill = colorOr(n.style, "fontcolor", "#000000");
-    parts.push(renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill, style: n.style }));
+    parts.push(
+      renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill, style: n.style, defaultFontStack }),
+    );
   }
 
   const inner = parts.join("");
@@ -492,8 +506,11 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
   const vbH = maxY - minY + pad * 2;
 
   const gctx: GradientBuildContext = { fragments: [], nextId: 0 };
-  const edgeLayer = page.edges.map((e) => renderEdge(e, edgeMetrics.get(e.id)!)).join("\n");
-  const nodeLayer = page.nodes.map((n) => renderNode(n, gctx)).join("\n");
+  const defaultFontStack = options.defaultFontStack;
+  const edgeLayer = page.edges
+    .map((e) => renderEdge(e, edgeMetrics.get(e.id)!, defaultFontStack))
+    .join("\n");
+  const nodeLayer = page.nodes.map((n) => renderNode(n, gctx, defaultFontStack)).join("\n");
 
   const gradientBlock =
     gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";

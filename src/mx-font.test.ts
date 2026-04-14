@@ -32,6 +32,11 @@ describe("mx-font", () => {
     expect(svgFontStack(style({ fontFamily: "Georgia" }))).toMatch(/^Georgia,/);
   });
 
+  test("svgFontStack defaultTailStack replaces library default when no fontFamily", () => {
+    expect(svgFontStack(new Map(), "Verdana, sans-serif")).toBe("Verdana, sans-serif");
+    expect(svgFontStack(style({ fontFamily: "Georgia" }), "Verdana, sans-serif")).toMatch(/^Georgia,/);
+  });
+
   test("svgFontAttrString emits bold italic underline", () => {
     const s = svgFontAttrString(style({ fontStyle: "7" }), esc);
     expect(s).toContain('font-weight="bold"');

@@ -22,23 +22,27 @@ export function mxFontStyleBits(style: Map<string, string>): number {
   return n | 0;
 }
 
-/** `fontFamily=...`：前置用户字体，再接默认栈。 */
-export function svgFontStack(style: Map<string, string>): string {
+/**
+ * `fontFamily=...`：前置用户字体，再接默认栈尾部。
+ * `defaultTailStack`：单元格未指定 `fontFamily` 时整段使用的栈（覆盖库内 `DEFAULT_FONT_STACK`）。
+ */
+export function svgFontStack(style: Map<string, string>, defaultTailStack?: string): string {
   const fam = style.get("fontfamily")?.trim();
+  const tail = defaultTailStack?.trim() || DEFAULT_FONT_STACK;
   if (!fam || fam.toLowerCase() === "default") {
-    return DEFAULT_FONT_STACK;
+    return tail;
   }
-  return `${fam}, ${DEFAULT_FONT_STACK}`;
+  return `${fam}, ${tail}`;
 }
 
 /**
  * Canvas `font` 串，供 Pretext 测量（顺序：font-style font-weight size family）。
  */
-export function canvasFontString(fontSizePx: number, style: Map<string, string>): string {
+export function canvasFontString(fontSizePx: number, style: Map<string, string>, defaultTailStack?: string): string {
   const bits = mxFontStyleBits(style);
   const weight = (bits & MX_FONT_BOLD) !== 0 ? "bold" : "normal";
   const slant = (bits & MX_FONT_ITALIC) !== 0 ? "italic" : "normal";
-  const family = svgFontStack(style);
+  const family = svgFontStack(style, defaultTailStack);
   const parts: string[] = [];
   if (slant !== "normal") parts.push(slant);
   if (weight !== "normal") parts.push(weight);
@@ -48,9 +52,13 @@ export function canvasFontString(fontSizePx: number, style: Map<string, string>)
 }
 
 /** 写入 `<text>` 的字体相关属性（已 XML 转义）。 */
-export function svgFontAttrString(style: Map<string, string>, esc: (s: string) => string): string {
+export function svgFontAttrString(
+  style: Map<string, string>,
+  esc: (s: string) => string,
+  defaultTailStack?: string,
+): string {
   const bits = mxFontStyleBits(style);
-  const attrs: string[] = [`font-family="${esc(svgFontStack(style))}"`];
+  const attrs: string[] = [`font-family="${esc(svgFontStack(style, defaultTailStack))}"`];
   if ((bits & MX_FONT_BOLD) !== 0) attrs.push('font-weight="bold"');
   if ((bits & MX_FONT_ITALIC) !== 0) attrs.push('font-style="italic"');
   if ((bits & MX_FONT_UNDERLINE) !== 0) attrs.push('text-decoration="underline"');

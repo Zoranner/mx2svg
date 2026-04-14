@@ -21,7 +21,12 @@ bun test
 ```ts
 import { convert } from "mx2svg";
 
-const svg = convert(drawioXml, { pageIndex: 0, padding: 8, backgroundColor: "#fff" });
+const svg = convert(drawioXml, {
+  pageIndex: 0,
+  padding: 8,
+  backgroundColor: "#fff",
+  defaultFontStack: "Inter, system-ui, sans-serif", // 可选：无 fontFamily 的单元格用此栈
+});
 // svg 为完整 SVG 文档字符串，可写文件、塞进 HTTP 响应、交给前端展示等
 ```
 
@@ -89,7 +94,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
   - **`rounded=1`**且路点 ≥ **3**：正交折线拐角 **`L` + `Q`**（默认贴近 `LINE_ARCSIZE`，可用 **`arcSize`** 覆盖）。
   - **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边**路点折线**求交处画跨越弧（`C`）；**`noJump=1`** 不参与检测；**`curved=1`** 或 **`noJump=1`** 不画跳线。
 - **样式**：`dashed`；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；箭头 **marker 颜色与 `strokeColor` 一致**；未设 `startArrow` 时起点无箭头；**`fontSize` / `fontColor` / `fontStyle` / `fontFamily`** 作用于边标签（与顶点相同语义）。
-- **`spacing`**：仅当边 **没有** 显式 `sourcePoint`/`targetPoint`（解析回退为 **源/目标中心连线**）时生效：沿连线穿出 **轴对齐包围盒**（`ellipse` 为真实椭圆周界；**旋转**或非矩形复杂形状暂用外接矩形近似）后，两端再各内收 `spacing` 像素，避免线段画进节点内部。
+- **`spacing`**：仅当边 **没有** 显式 `sourcePoint`/`targetPoint`（解析回退为 **源/目标中心连线**）时生效：沿连线穿出形状周界后，两端再各内收 `spacing` 像素。**矩形**（及非椭圆类形状）：轴对齐框；**`ellipse`**：椭圆；**旋转 ≠ 0 的矩形**：在 **局部未旋转坐标系** 内按框求交（与 SVG `transform="rotate(...)"` 一致）；**旋转椭圆** 仍用 **外接轴对齐框** 近似；其它多边形仍用外接框。
 - **边标签锚点**：默认路径**总长中点**；**`mxPoint as="label"`** 且 **`x` 在 [0,1]** 时为弧长比例与法向 **`y`** 偏移；**`relative=1`** 且 geometry 带 **`x`/`y`** 时为相对中点的平移。
 - **边标签折行**：**`whiteSpace=wrap`** 时，以 **`mxGeometry` 的 `width`（>0）** 为最大行宽（Pretext）；无 `width` 时使用与字号相关的默认行宽。
 - **边标签衬底**：**`labelBackgroundColor`**（与顶点相同：Pretext 测宽测高后圆角矩形；有衬底时不再加白色描边晕圈）。
@@ -123,7 +128,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 ### 分阶段计划
 
-- **近期（高性价比）**：边标签与路径的 **边距** 更贴齐编辑器；**`RenderOptions`** 默认字体栈（可选）；**旋转/多边形** 上的 `spacing` 周界。
+- **近期（高性价比）**：边标签与路径的 **边距** 更贴齐编辑器；**多边形真实周界** 与 **旋转椭圆** 的 `spacing`。
 - **中期**：扩展 **`jumpStyle`**、**`shape`** 与箭头；**`parent`** 层级与遮挡；**垂直度量**与多行基线。
 - **长期**：泳道、表格、`UserObject`；富文本与图片单元；**`RenderOptions`** 主题与字体栈。
 

@@ -56,6 +56,18 @@ function rectBoundaryExitT(
 }
 
 /** 未旋转椭圆边界：线段从 `from` 穿出 toward方向，取 (0,1] 内最小正根。 */
+/** 页面坐标 → 以单元格中心为原点、逆旋转后的局部坐标（y 向下，矩形为 [-w/2,w/2]×[-h/2,h/2]）。 */
+function worldToLocalCentered(p: { x: number; y: number }, n: DiagramNode): { x: number; y: number } {
+  const rcx = n.x + n.width / 2;
+  const rcy = n.y + n.height / 2;
+  const rad = (-n.rotation * Math.PI) / 180;
+  const dx = p.x - rcx;
+  const dy = p.y - rcy;
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  return { x: dx * c - dy * s, y: dx * s + dy * c };
+}
+
 function ellipseBoundaryExitT(from: { x: number; y: number }, toward: { x: number; y: number }, n: DiagramNode): number | null {
   const cx = n.x + n.width / 2;
   const cy = n.y + n.height / 2;
@@ -86,7 +98,12 @@ function ellipseBoundaryExitT(from: { x: number; y: number }, toward: { x: numbe
 
 function perimeterExitT(from: { x: number; y: number }, toward: { x: number; y: number }, n: DiagramNode): number | null {
   if (n.rotation !== 0) {
-    return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
+    if (n.shape === "ellipse") {
+      return rectBoundaryExitT(from, toward, n.x, n.y, n.width, n.height);
+    }
+    const fromL = worldToLocalCentered(from, n);
+    const towardL = worldToLocalCentered(toward, n);
+    return rectBoundaryExitT(fromL, towardL, -n.width / 2, -n.height / 2, n.width, n.height);
   }
   if (n.shape === "ellipse") {
     return ellipseBoundaryExitT(from, toward, n);

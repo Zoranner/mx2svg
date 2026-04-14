@@ -107,6 +107,12 @@ describe("convert — 输入形态", () => {
     expect(Number.isFinite(wT) && Number.isFinite(wL)).toBe(true);
     expect(wL - wT).toBeCloseTo(80, 0);
   });
+
+  test("ConvertOptions：defaultFontStack 作用于无 fontFamily 的标签", () => {
+    const svg = convert(bareMxGraphModel, { defaultFontStack: "Georgia, serif" });
+    expect(svg).toContain("Georgia");
+    expect(svg).toContain("BareRoot");
+  });
 });
 
 describe("convert — 错误输入", () => {

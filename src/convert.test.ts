@@ -465,6 +465,13 @@ describe("convert", () => {
     expect(svg).toContain("Arial");
   });
 
+  test("ConvertOptions defaultFontStack applies when cell has no fontFamily", () => {
+    const svg = convert(minimalMxfile, { defaultFontStack: "Courier New, monospace" });
+    expect(svg).toContain("Courier New");
+    expect(svg).toContain("Hello");
+    expect(svg).not.toMatch(/Arial, Helvetica/);
+  });
+
   test("whiteSpace=wrap wraps long label with Pretext into multiple tspans", () => {
     const xml = minimalMxfile.replace(
       'value="Hello"',
