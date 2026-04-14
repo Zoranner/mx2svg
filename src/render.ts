@@ -23,6 +23,7 @@ import {
   polylinePointAtLengthFraction,
   polylinePointWithPerpendicularOffset,
 } from "./polyline.ts";
+import { EMPTY_MX_STYLE, svgFontAttrString } from "./mx-font.ts";
 import { shapePathD, vertexLabelCenter } from "./shape-path.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "./wrap-label.ts";
 
@@ -284,6 +285,8 @@ interface LabelBlockOpts {
   contrastStroke?: boolean;
   /** 对应 draw.io `fontColor`，默认 `#000000` */
   fill?: string;
+  /** 用于 `fontStyle` / `fontFamily` 等与 `mx-font` 一致 */
+  style?: Map<string, string>;
 }
 
 /** 形状内居中标签：单行用 dominant-baseline；多行用绝对 y 的 tspan 垂直居中。 */
@@ -304,9 +307,10 @@ function renderSvgLabelBlock(
     opts?.contrastStroke === true
       ? ' paint-order="stroke fill" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"'
       : "";
+  const fontAttrs = svgFontAttrString(opts?.style ?? EMPTY_MX_STYLE, esc);
 
   if (lines.length === 1) {
-    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="${fill}"${halo}>${escLine(
+    return `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${halo}>${escLine(
       lines[0],
     )}</text>`;
   }
@@ -315,7 +319,7 @@ function renderSvgLabelBlock(
   const tspans = lines
     .map((line, i) => `<tspan x="${cx}" y="${yFirst + i * lh}">${escLine(line)}</tspan>`)
     .join("");
-  return `<text text-anchor="middle" font-size="${fs}" font-family="Arial, Helvetica, sans-serif" fill="${fill}"${halo}>${tspans}</text>`;
+  return `<text text-anchor="middle" font-size="${fs}" ${fontAttrs} fill="${fill}"${halo}>${tspans}</text>`;
 }
 
 function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
@@ -345,13 +349,20 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
     const wrapBoxW =
       e.labelWrapWidth ?? (softWrap ? Math.max(56, Math.round(fs * 6.5)) : Number.POSITIVE_INFINITY);
     const displayLabel = softWrap
-      ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0)
+      ? wrapVertexLabelToBoxWidth(e.label, wrapBoxW, fs, 0, e.style)
       : e.label;
     const labelBgKey = e.style.get("labelbackgroundcolor");
     const hasLabelBg = !!labelBgKey && labelBgKey !== "none";
     if (hasLabelBg) {
       const measureBoxW = Number.isFinite(wrapBoxW) ? wrapBoxW : 1e9;
-      const { width: tw, height: th } = measureVertexLabelDisplayBlock(displayLabel, measureBoxW, fs, 0, softWrap);
+      const { width: tw, height: th } = measureVertexLabelDisplayBlock(
+        displayLabel,
+        measureBoxW,
+        fs,
+        0,
+        softWrap,
+        e.style,
+      );
       const pad = 4;
       const bw = tw + pad * 2;
       const bh = th + pad * 2;
@@ -365,6 +376,7 @@ function renderEdge(e: DiagramEdge, m: EdgeLineMetrics): string {
       renderSvgLabelBlock(anchor.x, anchor.y, fs, displayLabel, {
         contrastStroke: !hasLabelBg,
         fill: labelFill,
+        style: e.style,
       }),
     );
   }
@@ -429,7 +441,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
     const { cx: tx, cy: ty } = vertexLabelCenter(n.shape, n.x, n.y, n.width, n.height, n.style);
     const labelInset = 8;
     const softWrap = n.style.get("whitespace") === "wrap";
-    const wrap = softWrap ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset) : n.label;
+    const wrap = softWrap ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset, n.style) : n.label;
     const labelBg = colorOr(n.style, "labelbackgroundcolor", "");
     if (labelBg && labelBg !== "none") {
       const { width: tw, height: th } = measureVertexLabelDisplayBlock(
@@ -438,6 +450,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
         fs,
         labelInset,
         softWrap,
+        n.style,
       );
       const pad = 4;
       const bw = tw + pad * 2;
@@ -449,7 +462,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
       );
     }
     const labelFill = colorOr(n.style, "fontcolor", "#000000");
-    parts.push(renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill }));
+    parts.push(renderSvgLabelBlock(tx, ty, fs, wrap, { fill: labelFill, style: n.style }));
   }
 
   const inner = parts.join("");

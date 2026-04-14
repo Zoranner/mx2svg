@@ -1,13 +1,9 @@
 import "./pretext-shim.ts";
 import { layoutWithLines, prepareWithSegments } from "@chenglou/pretext";
-
-/** 与 `renderSvgLabelBlock` 中 SVG 字体一致，避免测量与渲染脱节。 */
-function vertexCanvasFont(fontSizePx: number): string {
-  return `${fontSizePx}px Arial, Helvetica, sans-serif`;
-}
+import { canvasFontString, EMPTY_MX_STYLE } from "./mx-font.ts";
 
 /**
- * 测量即将渲染的顶点标签占位（与 `wrapVertexLabelToBoxWidth` + `renderSvgLabelBlock` 一致）。
+ * 测量即将渲染的标签占位（与 `wrapVertexLabelToBoxWidth` + `renderSvgLabelBlock` + `mx-font` 一致）。
  * `softWrap=false` 时仅按硬换行折行，不按框宽软折行。
  */
 export function measureVertexLabelDisplayBlock(
@@ -16,10 +12,13 @@ export function measureVertexLabelDisplayBlock(
   fontSizePx: number,
   horizontalInsetPx: number,
   softWrap: boolean,
+  style: Map<string, string> = EMPTY_MX_STYLE,
 ): { width: number; height: number } {
   const maxContent = Math.max(1, boxWidthPx - 2 * horizontalInsetPx);
   const lineHeight = fontSizePx * 1.2;
-  const prepared = prepareWithSegments(displayText, vertexCanvasFont(fontSizePx), { whiteSpace: "pre-wrap" });
+  const prepared = prepareWithSegments(displayText, canvasFontString(fontSizePx, style), {
+    whiteSpace: "pre-wrap",
+  });
   const layoutMaxWidth = softWrap ? maxContent : 1e9;
   const { lines, height } = layoutWithLines(prepared, layoutMaxWidth, lineHeight);
   const maxLineW = lines.length === 0 ? 0 : Math.max(...lines.map((l) => l.width));
@@ -35,10 +34,11 @@ export function wrapVertexLabelToBoxWidth(
   boxWidthPx: number,
   fontSizePx: number,
   horizontalInsetPx: number,
+  style: Map<string, string> = EMPTY_MX_STYLE,
 ): string {
   const maxW = Math.max(1, boxWidthPx - 2 * horizontalInsetPx);
   const lineHeight = fontSizePx * 1.2;
-  const prepared = prepareWithSegments(label, vertexCanvasFont(fontSizePx), { whiteSpace: "pre-wrap" });
+  const prepared = prepareWithSegments(label, canvasFontString(fontSizePx, style), { whiteSpace: "pre-wrap" });
   const { lines } = layoutWithLines(prepared, maxW, lineHeight);
   return lines.map((l) => l.text).join("\n");
 }

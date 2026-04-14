@@ -407,6 +407,46 @@ describe("convert", () => {
     expect(svg).toContain("Hello");
   });
 
+  test("vertex fontStyle=1 sets font-weight bold on label", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontStyle=1;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('font-weight="bold"');
+    expect(svg).not.toContain('font-style="italic"');
+  });
+
+  test("vertex fontStyle=2 sets font-style italic", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontStyle=2;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('font-style="italic"');
+    expect(svg).not.toContain('font-weight="bold"');
+  });
+
+  test("vertex fontStyle=3 sets bold and italic", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontStyle=3;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('font-weight="bold"');
+    expect(svg).toContain('font-style="italic"');
+  });
+
+  test("vertex fontFamily appears in SVG font-family stack", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontFamily=Georgia;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("Georgia");
+    expect(svg).toContain("Arial");
+  });
+
   test("whiteSpace=wrap wraps long label with Pretext into multiple tspans", () => {
     const xml = minimalMxfile.replace(
       'value="Hello"',

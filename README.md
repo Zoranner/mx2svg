@@ -12,7 +12,7 @@ bun test
 跑完测试后，**`mx2svg/.test-output/`** 下会生成 SVG（已 **`.gitignore`**，不提交）：
 
 - **`cli/`**：CLI 单测（`string-stdout.svg`、`string-o.svg`）
-- **`convert/`**：**`convert-output.test.ts`** 写入的 **16+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、边标签比例、双开箭头等），便于逐项打开对照
+- **`convert/`**：**`convert-output.test.ts`** 写入的 **17+** 张典型图（底图、菱形/云/文档、曲线/圆角/跳线边、渐变、旋转、顶点/边标签衬底、字体样式、边标签比例、双开箭头等），便于逐项打开对照
 
 ### 程序化集成（开发中直接使用）
 
@@ -88,7 +88,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
   - **`curved=1`**：与 draw.io 一致的**二次贝塞尔**（`<path d="M…Q…">`）；标签与边界框按曲线密化近似。
   - **`rounded=1`**且路点 ≥ **3**：正交折线拐角 **`L` + `Q`**（默认贴近 `LINE_ARCSIZE`，可用 **`arcSize`** 覆盖）。
   - **`jumpStyle=arc`**（可选 **`jumpSize`**，默认 6）：与其它边**路点折线**求交处画跨越弧（`C`）；**`noJump=1`** 不参与检测；**`curved=1`** 或 **`noJump=1`** 不画跳线。
-- **样式**：`dashed`；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；箭头 **marker 颜色与 `strokeColor` 一致**；未设 `startArrow` 时起点无箭头。
+- **样式**：`dashed`；**`endArrow` / `startArrow`**（`none`、`open`、`oval`/`dot`、`diamond`、`classic`/`block` 等）；箭头 **marker 颜色与 `strokeColor` 一致**；未设 `startArrow` 时起点无箭头；**`fontSize` / `fontColor` / `fontStyle` / `fontFamily`** 作用于边标签（与顶点相同语义）。
 - **边标签锚点**：默认路径**总长中点**；**`mxPoint as="label"`** 且 **`x` 在 [0,1]** 时为弧长比例与法向 **`y`** 偏移；**`relative=1`** 且 geometry 带 **`x`/`y`** 时为相对中点的平移。
 - **边标签折行**：**`whiteSpace=wrap`** 时，以 **`mxGeometry` 的 `width`（>0）** 为最大行宽（Pretext）；无 `width` 时使用与字号相关的默认行宽。
 - **边标签衬底**：**`labelBackgroundColor`**（与顶点相同：Pretext 测宽测高后圆角矩形；有衬底时不再加白色描边晕圈）。
@@ -97,13 +97,13 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 - **`value`** 中常见 **HTML** 经 **`mxLabelToPlainText`** **降级为纯文本**（行内空白折叠）。
 - **显式多行**：`</p>`、`</div>`、`</tr>`、`<br>`、源码换行等 → 多行 **`tspan`**，在形状内大致垂直居中。
-- **顶点 `whiteSpace=wrap`**：框内软折行，测量字体 **`Arial, Helvetica, sans-serif`**（与 SVG 一致）。
+- **顶点 `whiteSpace=wrap`**：框内软折行；测量与 SVG 使用同一 **`fontFamily`**（未设时为 **`Arial, Helvetica, sans-serif`**）及 **`fontStyle`** 位标志（**`1`** 粗体、**`2`** 斜体、**`4`** 下划线，可相加，与 mxGraph 一致）。
 
 ## 局限与路线图
 
 ### 已知局限
 
-- 顶点与边均支持 **`labelBackgroundColor`**；与 draw.io 的像素级对齐仍依赖 **`fontStyle` / `fontFamily`** 等后续工作。
+- 顶点与边均支持 **`labelBackgroundColor`**；**`fontStyle` / `fontFamily`** 已映射到 SVG 与 Pretext 测量，与编辑器像素级一致仍受系统字体与度量差异影响。
 - 标签为 **纯文本**，无 HTML 内联粗体/着色等富文本。
 - **`jumpStyle`** 目前仅 **`arc`**。
 - **泳道、表格、`UserObject`、嵌入图片单元、大量内置 stencil** 等未覆盖或未完整建模。
@@ -116,13 +116,13 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 | 档位 | 含义 | 示例 |
 |------|------|------|
-| 小 | 现有管线内增量，常可单 PR | `fontStyle`；`spacing`；更多箭头视觉变体 |
+| 小 | 现有管线内增量，常可单 PR | **`spacing`**；更多箭头视觉变体 |
 | 中 | 多处联动或新抽象 | 其它 `jumpStyle`；更多 `shape`；分组与绘制顺序；可配置字体栈 |
 | 大 | 子项目级 | 泳道；表格；HTML/`foreignObject`；`image`；大范围 stencil |
 
 ### 分阶段计划
 
-- **近期（高性价比）**：**`fontStyle` / `fontFamily`** 子集与 SVG 对齐；**`spacing`** 与标签边距贴齐编辑器。
+- **近期（高性价比）**：**`spacing`** 与标签边距贴齐编辑器；**`RenderOptions`** 默认字体栈（可选）。
 - **中期**：扩展 **`jumpStyle`**、**`shape`** 与箭头；**`parent`** 层级与遮挡；**垂直度量**与多行基线。
 - **长期**：泳道、表格、`UserObject`；富文本与图片单元；**`RenderOptions`** 主题与字体栈。
 

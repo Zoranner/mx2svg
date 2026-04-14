@@ -200,4 +200,15 @@ describe("convert → .test-output/convert", () => {
     expect(svg).toContain("#fff2cc");
     dump("16-edge-label-background", svg);
   });
+
+  test("vertex bold georgia", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;fontStyle=1;fontFamily=Georgia;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('font-weight="bold"');
+    expect(svg).toContain("Georgia");
+    dump("17-vertex-font-bold-georgia", svg);
+  });
 });
