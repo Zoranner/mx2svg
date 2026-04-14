@@ -230,7 +230,7 @@ function renderNode(n: DiagramNode, g: GradientBuildContext): string {
   const dashAttr = strokeDashAttr(n.style);
   const parts: string[] = [];
 
-  const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height);
+  const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height, n.style);
   if (pathD) {
     parts.push(
       `<path d="${pathD}" fill="${fill}" stroke="${esc(stroke)}" stroke-width="${sw}" stroke-linejoin="round"${dashAttr}/>`,

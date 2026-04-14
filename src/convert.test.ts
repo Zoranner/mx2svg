@@ -74,6 +74,27 @@ describe("convert", () => {
     expect(svg).toMatch(/ A 60 [\d.]+\s+0 0 0 100 /);
   });
 
+  test("shape triangle default north and trapezoid render path", () => {
+    const tri = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=triangle;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    expect(convert(tri)).toContain('d="M 160 80 L 220 140 L 100 140 Z"');
+    const trap = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=trapezoid;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    expect(convert(trap)).toContain('d="M 118 80 L 202 80 L 220 140 L 100 140 Z"');
+  });
+
+  test("shape triangle direction south flips apex", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=triangle;direction=south;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    expect(convert(xml)).toContain('d="M 100 80 L 220 80 L 160 140 Z"');
+  });
+
   test("renders edge between source and target (center line)", () => {
     const svg = convert(minimalMxfile);
     expect(svg).toContain("<polyline");

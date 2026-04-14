@@ -50,6 +50,12 @@ export function inferShape(style: Map<string, string>): NodeShape {
   ) {
     return "cylinder";
   }
+  if (s === "triangle" || style.has("triangle")) {
+    return "triangle";
+  }
+  if (s === "trapezoid" || style.has("trapezoid")) {
+    return "trapezoid";
+  }
 
   return "rect";
 }

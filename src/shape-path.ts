@@ -1,7 +1,14 @@
 import type { NodeShape } from "./model.ts";
 
 /** 与 bbox 对齐的简单 path（绝对坐标），供 `shape=*` 顶点填充与描边。 */
-export function shapePathD(shape: NodeShape, x: number, y: number, w: number, h: number): string | null {
+export function shapePathD(
+  shape: NodeShape,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  style?: Map<string, string>,
+): string | null {
   switch (shape) {
     case "rect":
     case "ellipse":
@@ -23,6 +30,25 @@ export function shapePathD(shape: NodeShape, x: number, y: number, w: number, h:
       const rx = w / 2;
       const ry = Math.min(Math.max(h * 0.08, 3), h * 0.22);
       return `M ${x} ${y + ry} L ${x} ${y + h} L ${x + w} ${y + h} L ${x + w} ${y + ry} A ${rx} ${ry} 0 0 0 ${x} ${y + ry} Z`;
+    }
+    case "triangle": {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const dir = (style?.get("direction") ?? "north").toLowerCase();
+      if (dir === "south") {
+        return `M ${x} ${y} L ${x + w} ${y} L ${cx} ${y + h} Z`;
+      }
+      if (dir === "east") {
+        return `M ${x} ${y} L ${x + w} ${cy} L ${x} ${y + h} Z`;
+      }
+      if (dir === "west") {
+        return `M ${x + w} ${y} L ${x} ${cy} L ${x + w} ${y + h} Z`;
+      }
+      return `M ${cx} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+    }
+    case "trapezoid": {
+      const inset = w * 0.15;
+      return `M ${x + inset} ${y} L ${x + w - inset} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
     }
     default: {
       const _exhaustive: never = shape;
