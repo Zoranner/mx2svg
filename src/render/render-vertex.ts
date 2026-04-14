@@ -53,7 +53,7 @@ export function renderVertex(
   const sw = strokeWidthPx(n.style, 1);
   const strokeNone = stroke === "none" || sw === 0;
   const fs = Number(n.style.get("fontsize") ?? "12") || 12;
-  const dashAttr = strokeDashAttr(n.style);
+  const dashAttr = strokeDashAttr(n.style, sw);
   const fillOp = fillOpacityAttr(n.style);
   const strokeOp = strokeOpacityAttr(n.style);
   const paint2d = `${fillOp}${strokeOp}`;

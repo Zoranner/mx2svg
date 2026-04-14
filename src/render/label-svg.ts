@@ -24,7 +24,7 @@ export interface LabelBlockOpts {
   contentWidth?: number;
 }
 
-/** 形状内居中标签：单行用 dominant-baseline；多行用绝对 y 的 tspan 垂直居中。 */
+/** 形状内居中标签：单行 **`dominant-baseline="middle"`**；多行 **`tspan` `y`** 为 baseline 排梯，并用 **`mxLabelMultilineVisualCenterDyPx`** 下移使墨迹垂直中心与 **`cy`** 对齐。 */
 export function renderSvgLabelBlock(
   cx: number,
   cy: number,

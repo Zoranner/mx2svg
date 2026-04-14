@@ -52,6 +52,21 @@ describe("adjustCenterConnectorEndpoints", () => {
     expect(Math.abs(pRhom![0].x - pRect![0].x)).toBeGreaterThan(0.5);
   });
 
+  test("cloud perimeter differs from same-bbox rect", () => {
+    const b = node({ id: "b", x: 300, y: 80, width: 80, height: 80 });
+    const cA = { x: 160, y: 110 };
+    const cB = { x: 340, y: 120 };
+    const cloud = node({ id: "a", x: 100, y: 80, width: 120, height: 60, shape: "cloud" });
+    const rect = node({ id: "a", x: 100, y: 80, width: 120, height: 60, shape: "rect" });
+    const pCloud = adjustCenterConnectorEndpoints(cA, cB, cloud, b, 10);
+    const pRect = adjustCenterConnectorEndpoints(cA, cB, rect, b, 10);
+    expect(pCloud).not.toBeNull();
+    expect(pRect).not.toBeNull();
+    expect(
+      Math.abs(pCloud![0].x - pRect![0].x) + Math.abs(pCloud![0].y - pRect![0].y),
+    ).toBeGreaterThan(0.5);
+  });
+
   test("rotated ellipse perimeter differs from axis-aligned ellipse", () => {
     const b = node({ id: "b", x: 300, y: 80, width: 80, height: 80 });
     const cA = { x: 160, y: 110 };

@@ -98,7 +98,15 @@ export function gradientDirectionToPercents(dirRaw: string): {
   }
 }
 
-export function strokeDashAttr(style: Map<string, string>): string {
+/**
+ * **`stroke-dasharray`**。
+ * 自定义 **`dashPattern`**：若 **`fixDash`** 非 **`1`/`true`**，各段按 **`strokeWidthForDashScale`**（与当前几何 **`stroke-width`** 一致）缩放，贴近 draw.io **相对虚线**；**`fixDash=1`** 时用图案字面长度（用户坐标像素）。
+ * 仅 **`dashed`/`dash`**、无 **`dashPattern`** 时仍为 **`6 4`**，不按线宽缩放（避免与既有图大面积漂移）。
+ */
+export function strokeDashAttr(
+  style: Map<string, string>,
+  strokeWidthForDashScale: number,
+): string {
   const patRaw = style.get("dashpattern");
   if (patRaw != null && patRaw.trim() !== "") {
     const parts = patRaw
@@ -106,7 +114,14 @@ export function strokeDashAttr(style: Map<string, string>): string {
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0);
     if (parts.length > 0) {
-      return ` stroke-dasharray="${parts.join(" ")}"`;
+      const fix = style.get("fixdash");
+      const fixed = fix === "1" || fix === "true";
+      const mult = fixed ? 1 : Math.max(0.25, strokeWidthForDashScale);
+      const scaled = parts.map((n) => {
+        const x = n * mult;
+        return String(Math.round(x * 1000) / 1000);
+      });
+      return ` stroke-dasharray="${scaled.join(" ")}"`;
     }
   }
   const d = style.get("dashed");

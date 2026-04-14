@@ -221,6 +221,28 @@ describe("convert", () => {
     expect(firstPolylinePoint(convert(rhombusXml))).not.toBe(firstPolylinePoint(convert(rectXml)));
   });
 
+  test("edge spacing from cloud source differs from rect source polyline start", () => {
+    const cloudXml = minimalMxfile
+      .replace(
+        "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+        "shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      )
+      .replace(
+        "endArrow=classic;strokeColor=#82b366;",
+        "endArrow=classic;strokeColor=#82b366;spacing=12;",
+      );
+    const rectXml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=classic;strokeColor=#82b366;spacing=12;",
+    );
+    const firstPolylinePoint = (svg: string): string =>
+      svg
+        .match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1]
+        ?.match(/points="([^"]+)"/)?.[1]
+        ?.split(/\s+/)?.[0] ?? "";
+    expect(firstPolylinePoint(convert(cloudXml))).not.toBe(firstPolylinePoint(convert(rectXml)));
+  });
+
   test("renders startArrow when startArrow is set in style", () => {
     const xml = minimalMxfile.replace(
       "endArrow=classic;strokeColor=#82b366;",
@@ -523,6 +545,22 @@ describe("convert", () => {
     expect(convert(xml)).toContain('stroke-dasharray="8 3"');
   });
 
+  test("vertex dashPattern scales by strokeWidth when fixDash is unset", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;strokeWidth=3;dashed=1;dashPattern=2 2;",
+    );
+    expect(convert(xml)).toContain('stroke-dasharray="6 6"');
+  });
+
+  test("vertex dashPattern not scaled when fixDash=1", () => {
+    const xml = minimalMxfile.replace(
+      "strokeColor=#6c8ebf;",
+      "strokeColor=#6c8ebf;strokeWidth=4;dashed=1;dashPattern=5 3;fixDash=1;",
+    );
+    expect(convert(xml)).toContain('stroke-dasharray="5 3"');
+  });
+
   test("vertex dash=1 enables default stroke-dasharray", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;dash=1;");
     expect(convert(xml)).toContain('stroke-dasharray="6 4"');
@@ -545,6 +583,15 @@ describe("convert", () => {
     );
     const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
     expect(inner).toContain('stroke-dasharray="12 4 2 4"');
+  });
+
+  test("edge dashPattern scales by strokeWidth when fixDash is unset", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;strokeWidth=2;dashed=1;dashPattern=3 2;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke-dasharray="6 4"');
   });
 
   test("vertex multiline value renders tspans with distinct y", () => {

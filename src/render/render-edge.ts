@@ -49,7 +49,7 @@ export function renderEdge(
   const strokeNone = strokeRaw === "none" || sw === 0;
   const stroke = strokeNone ? "none" : strokeRaw;
   const fs = Number(e.style.get("fontsize") ?? "11") || 11;
-  const dashAttr = strokeDashAttr(e.style);
+  const dashAttr = strokeDashAttr(e.style, sw);
   const strokeVisible = !strokeNone;
   const scaleEnd = edgeArrowSizeScale(e.style, true);
   const scaleStart = edgeArrowSizeScale(e.style, false);
