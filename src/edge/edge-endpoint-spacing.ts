@@ -154,6 +154,17 @@ function polygonBoundaryExitT(
   return best;
 }
 
+export function perimeterPointFromCenterToward(
+  n: DiagramNode,
+  toward: { x: number; y: number },
+): { x: number; y: number } {
+  const cx = n.x + n.width / 2;
+  const cy = n.y + n.height / 2;
+  const t = perimeterExitT({ x: cx, y: cy }, toward, n);
+  if (t == null) return { x: cx, y: cy };
+  return { x: cx + t * (toward.x - cx), y: cy + t * (toward.y - cy) };
+}
+
 function perimeterExitT(
   from: { x: number; y: number },
   toward: { x: number; y: number },

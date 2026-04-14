@@ -13,6 +13,8 @@ import {
   parseEdgeLabelAlignV,
 } from "./edge-label-layout.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
+import type { PageBakeOrigin } from "./page-bake.ts";
+import { bakeX, bakeY } from "./page-bake.ts";
 import type { GradientBuildContext } from "./svg-util.ts";
 import {
   allocFill,
@@ -45,8 +47,11 @@ import {
 export function renderVertex(
   n: DiagramNode,
   g: GradientBuildContext,
+  bake: PageBakeOrigin,
   defaultFontStack?: string,
 ): string {
+  const bx = (x: number): number => bakeX(bake, x);
+  const by = (y: number): number => bakeY(bake, y);
   const fillSolid = mxPaintColor(n.style, "fillcolor", "#dae8fc");
   const fill = allocFill(n.style, fillSolid, g);
   const stroke = mxPaintColor(n.style, "strokecolor", "#6c8ebf");
@@ -61,7 +66,7 @@ export function renderVertex(
   const miterAttr = strokeMiterlimitAttr(n.style);
   const isDouble = mxStyleDoubleEnabled(n.style) && !strokeNone;
 
-  const pathD = shapePathD(n.shape, n.x, n.y, n.width, n.height, n.style);
+  const pathD = shapePathD(n.shape, bx(n.x), by(n.y), n.width, n.height, n.style);
   const pathCapJoin = vertexPathStrokeCapJoinAttr(n.style);
   const shapeCapJoin = vertexOptionalStrokeCapJoinAttr(n.style);
   const lineCap = vertexLineStrokeCapAttr(n.style, "round");
@@ -86,31 +91,31 @@ export function renderVertex(
     const rx = rounded ? Math.min(n.width * arcFrac, n.height * arcFrac) : 0;
     if (strokeNone) {
       shapeParts.push(
-        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
+        `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
       );
       shapeParts.push(
-        `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="none"${lineCap}/>`,
+        `<line x1="${bx(n.x)}" y1="${by(n.y + dy)}" x2="${bx(n.x + n.width)}" y2="${by(n.y + dy)}" stroke="none"${lineCap}/>`,
       );
       shapeParts.push(
-        `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="none"${lineCap}/>`,
+        `<line x1="${bx(n.x + dx)}" y1="${by(n.y)}" x2="${bx(n.x + dx)}" y2="${by(n.y + n.height)}" stroke="none"${lineCap}/>`,
       );
     } else {
       shapeParts.push(
-        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
+        `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
       );
       const lineStroke = esc(stroke);
       shapeParts.push(
-        `<line x1="${n.x}" y1="${n.y + dy}" x2="${n.x + n.width}" y2="${n.y + dy}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
+        `<line x1="${bx(n.x)}" y1="${by(n.y + dy)}" x2="${bx(n.x + n.width)}" y2="${by(n.y + dy)}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
       );
       shapeParts.push(
-        `<line x1="${n.x + dx}" y1="${n.y}" x2="${n.x + dx}" y2="${n.y + n.height}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
+        `<line x1="${bx(n.x + dx)}" y1="${by(n.y)}" x2="${bx(n.x + dx)}" y2="${by(n.y + n.height)}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
       );
     }
   } else if (n.shape === "ellipse") {
-    const cx = n.x + n.width / 2;
-    const cy = n.y + n.height / 2;
+    const cx = bx(n.x + n.width / 2);
+    const cy = by(n.y + n.height / 2);
     const rx = n.width / 2;
     const ry = n.height / 2;
     const strokeOnlyExtras = `${dashAttr}${shapeCapJoin}${strokeOp}${miterAttr}`;
@@ -147,27 +152,27 @@ export function renderVertex(
       const iw = Math.max(0, n.width - 2 * inset);
       const ih = Math.max(0, n.height - 2 * inset);
       shapeParts.push(
-        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="none"${fillOp}/>`,
+        `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="none"${fillOp}/>`,
       );
       shapeParts.push(
-        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="none" stroke="${esc(
+        `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="none" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${strokeOnlyExtras}/>`,
       );
       if (iw > 0 && ih > 0) {
         shapeParts.push(
-          `<rect x="${n.x + inset}" y="${n.y + inset}" width="${iw}" height="${ih}" fill="none" stroke="${esc(
+          `<rect x="${bx(n.x + inset)}" y="${by(n.y + inset)}" width="${iw}" height="${ih}" fill="none" stroke="${esc(
             stroke,
           )}" stroke-width="${sw}" rx="${rxIn}" ry="${rxIn}"${strokeOnlyExtras}/>`,
         );
       }
     } else if (strokeNone) {
       shapeParts.push(
-        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
+        `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="${fill}"${fillOp} stroke="none" rx="${rx}" ry="${rx}"/>`,
       );
     } else {
       shapeParts.push(
-        `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
+        `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
       );
@@ -194,7 +199,7 @@ export function renderVertex(
       defaultFontStack,
       contentMaxW,
     );
-    const rect = vertexLabelLayoutRect(n.shape, n.x, n.y, n.width, n.height, n.style, pad);
+    const rect = vertexLabelLayoutRect(n.shape, bx(n.x), by(n.y), n.width, n.height, n.style, pad);
     const ah = parseEdgeLabelAlignH(n.style);
     const av = parseEdgeLabelAlignV(n.style);
     let ax = (rect.left + rect.right) / 2;
@@ -246,8 +251,8 @@ export function renderVertex(
 
   const gOp = groupOpacityAttr(n.style);
   const filt = mxStyleShadowEnabled(n.style) ? ` filter="url(#${dropShadowFilterId()})"` : "";
-  const rcx = n.x + n.width / 2;
-  const rcy = n.y + n.height / 2;
+  const rcx = bx(n.x + n.width / 2);
+  const rcy = by(n.y + n.height / 2);
   const fh = mxStyleFlipH(n.style) ? -1 : 1;
   const fv = mxStyleFlipV(n.style) ? -1 : 1;
   const needFlip = fh !== 1 || fv !== 1;

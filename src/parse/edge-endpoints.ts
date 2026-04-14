@@ -14,14 +14,17 @@ export function maybeAdjustCenterConnectorPoints(
     style: Map<string, string>;
     nodeById: Map<string, DiagramNode>;
   },
-): { x: number; y: number }[] {
+): { pts: { x: number; y: number }[]; didSpacing: boolean } {
   const { usedCenterFallback, source, target, style, nodeById } = opts;
-  if (!usedCenterFallback || pts.length !== 2 || !source || !target) return pts;
+  if (!usedCenterFallback || pts.length !== 2 || !source || !target) {
+    return { pts, didSpacing: false };
+  }
   const a = nodeById.get(source);
   const b = nodeById.get(target);
-  if (!a || !b) return pts;
+  if (!a || !b) return { pts, didSpacing: false };
   const spacing = Number(style.get("spacing"));
-  if (!Number.isFinite(spacing) || spacing <= 0) return pts;
+  if (!Number.isFinite(spacing) || spacing <= 0) return { pts, didSpacing: false };
   const adj = adjustCenterConnectorEndpoints(pts[0]!, pts[1]!, a, b, spacing);
-  return adj ?? pts;
+  if (!adj) return { pts, didSpacing: false };
+  return { pts: adj, didSpacing: true };
 }

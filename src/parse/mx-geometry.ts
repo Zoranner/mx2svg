@@ -67,9 +67,43 @@ export function edgePointsFromGeometry(
   if (target) parts.push(target);
 
   if (parts.length >= 2) return parts;
+  /** 仅 `Array` 路点、无 `sourcePoint`/`targetPoint`：可只有 1 个中间点，由解析阶段再接源/目标周界。 */
+  if (arrayPoints.length >= 1 && !source && !target) return arrayPoints;
   if (loose.length >= 2) return loose;
   if (source && target) return [source, target];
   return null;
+}
+
+/** `mxPoint as="sourcePoint"` / `targetPoint` 已给出绝对端点时为 true。 */
+export function edgeGeometryHasExplicitTerminals(
+  geo: Record<string, unknown> | undefined,
+): boolean {
+  if (!geo) return false;
+  const allMxPoints = asArray<Record<string, unknown>>(
+    geo.mxPoint as Record<string, unknown> | Record<string, unknown>[],
+  );
+  for (const o of allMxPoints) {
+    const as = strAttr(o, "as");
+    if (as === "sourcePoint" || as === "targetPoint") return true;
+  }
+  return false;
+}
+
+/** `Array as="points"` 中路点条数。 */
+export function edgeArrayWaypointCount(geo: Record<string, unknown> | undefined): number {
+  if (!geo) return 0;
+  const arrRaw = geo.Array;
+  if (!arrRaw || typeof arrRaw !== "object" || Array.isArray(arrRaw)) return 0;
+  const inner = asArray<Record<string, unknown>>(
+    (arrRaw as Record<string, unknown>).mxPoint as
+      | Record<string, unknown>
+      | Record<string, unknown>[],
+  );
+  let n = 0;
+  for (const o of inner) {
+    if (parseMxPoint(o)) n++;
+  }
+  return n;
 }
 
 export function mxPointByAs(

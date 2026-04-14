@@ -3,6 +3,7 @@ import { buildArrowMarkerDefs } from "../edge/edge-arrow.ts";
 import { pageContentBounds } from "./bounds.ts";
 import { computeEdgeLineMetrics } from "./edge-line-metrics.ts";
 import type { RenderOptions } from "./options.ts";
+import { pageBakeOriginFromBounds } from "./page-bake.ts";
 import { renderEdge } from "./render-edge.ts";
 import { renderVertex } from "./render-vertex.ts";
 import {
@@ -26,17 +27,34 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
 
   const edgeMetrics = computeEdgeLineMetrics(page.edges);
   const { minX, minY, maxX, maxY } = pageContentBounds(page, edgeMetrics);
-  const vbX = minX - pad;
-  const vbY = minY - pad;
   const vbW = maxX - minX + pad * 2;
   const vbH = maxY - minY + pad * 2;
+  /** 与 draw.io 导出一致：坐标烘焙到 viewBox，无外层 translate。 */
+  const bake = pageBakeOriginFromBounds(minX, minY, pad);
 
   const gctx: GradientBuildContext = { fragments: [], nextId: 0 };
   const defaultFontStack = options.defaultFontStack;
-  const edgeLayer = page.edges
-    .map((e) => renderEdge(e, edgeMetrics.get(e.id)!, gctx, defaultFontStack))
-    .join("\n");
-  const nodeLayer = page.nodes.map((n) => renderVertex(n, gctx, defaultFontStack)).join("\n");
+  const nodeById = new Map(page.nodes.map((n) => [n.id, n] as const));
+  const edgeById = new Map(page.edges.map((e) => [e.id, e] as const));
+
+  const bodyLayers: string[] = [];
+  if (page.renderOrder?.length) {
+    for (const item of page.renderOrder) {
+      if (item.kind === "node") {
+        const n = nodeById.get(item.id);
+        if (n) bodyLayers.push(renderVertex(n, gctx, bake, defaultFontStack));
+      } else {
+        const e = edgeById.get(item.id);
+        if (e) bodyLayers.push(renderEdge(e, edgeMetrics.get(e.id)!, gctx, bake, defaultFontStack));
+      }
+    }
+  } else {
+    for (const n of page.nodes) bodyLayers.push(renderVertex(n, gctx, bake, defaultFontStack));
+    for (const e of page.edges) {
+      bodyLayers.push(renderEdge(e, edgeMetrics.get(e.id)!, gctx, bake, defaultFontStack));
+    }
+  }
+  const contentLayer = bodyLayers.join("\n");
 
   const gradientBlock = gctx.fragments.length > 0 ? `${gctx.fragments.join("\n  ")}` : "";
   const shadowBlock = page.nodes.some((n) => mxStyleShadowEnabled(n.style))
@@ -46,13 +64,13 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
     .filter(Boolean)
     .join("\n  ");
 
+  /** `renderOrder` 与 draw.io mxCell 顺序一致；缺省时为全部顶点后全部边。 */
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}">
-  <rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="${esc(bg)}"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="0 0 ${vbW} ${vbH}">
+  <rect x="0" y="0" width="${vbW}" height="${vbH}" fill="${esc(bg)}"/>
   <defs>
   ${defsInner}
   </defs>
-  ${edgeLayer}
-  ${nodeLayer}
+  ${contentLayer}
 </svg>`;
 }

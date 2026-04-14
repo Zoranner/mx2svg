@@ -19,7 +19,7 @@ describe("convert", () => {
     );
     const svg = convert(xml);
     expect(svg).toContain("<path ");
-    expect(svg).toMatch(/d="M 160 80 L 220 110 L 160 140 L 100 110 Z"/);
+    expect(svg).toMatch(/d="M 68 8 L 128 38 L 68 68 L 8 38 Z"/);
   });
 
   test("shape diamond is alias of rhombus", () => {
@@ -28,7 +28,7 @@ describe("convert", () => {
       "shape=diamond;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
     const svg = convert(xml);
-    expect(svg).toMatch(/d="M 160 80 L 220 110 L 160 140 L 100 110 Z"/);
+    expect(svg).toMatch(/d="M 68 8 L 128 38 L 68 68 L 8 38 Z"/);
   });
 
   test("shape hexagon and parallelogram render path", () => {
@@ -36,14 +36,12 @@ describe("convert", () => {
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=hexagon;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
-    expect(convert(hex)).toContain(
-      'd="M 130 80 L 190 80 L 220 110 L 190 140 L 130 140 L 100 110 Z"',
-    );
+    expect(convert(hex)).toContain('d="M 38 8 L 98 8 L 128 38 L 98 68 L 38 68 L 8 38 Z"');
     const para = minimalMxfile.replace(
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=parallelogram;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
-    expect(convert(para)).toContain('d="M 130 80 L 220 80 L 190 140 L 100 140 Z"');
+    expect(convert(para)).toContain('d="M 38 8 L 128 8 L 98 68 L 8 68 Z"');
   });
 
   test("shape cylinder3 renders path with elliptic arc", () => {
@@ -53,7 +51,7 @@ describe("convert", () => {
     );
     const svg = convert(xml);
     expect(svg).toContain("<path ");
-    expect(svg).toMatch(/ A 60 [\d.]+\s+0 0 0 100 /);
+    expect(svg).toMatch(/ A 60 [\d.]+\s+0 0 0 8 /);
   });
 
   test("shape triangle default north and trapezoid render path", () => {
@@ -61,12 +59,12 @@ describe("convert", () => {
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=triangle;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
-    expect(convert(tri)).toContain('d="M 160 80 L 220 140 L 100 140 Z"');
+    expect(convert(tri)).toContain('d="M 68 8 L 128 68 L 8 68 Z"');
     const trap = minimalMxfile.replace(
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=trapezoid;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
-    expect(convert(trap)).toContain('d="M 118 80 L 202 80 L 220 140 L 100 140 Z"');
+    expect(convert(trap)).toContain('d="M 26 8 L 110 8 L 128 68 L 8 68 Z"');
   });
 
   test("shape cloud renders closed cubic path", () => {
@@ -76,9 +74,19 @@ describe("convert", () => {
     );
     const svg = convert(xml);
     expect(svg).toContain("<path ");
-    expect(svg).toMatch(/M 130 95/);
+    expect(svg).toMatch(/M 38 23/);
     expect(svg).toContain(" C ");
-    expect(svg).toMatch(/130 95 Z"/);
+    expect(svg).toMatch(/38 23 Z"/);
+  });
+
+  test("ellipse token with shape=cloud uses cloud path not ellipse", () => {
+    const xml = minimalMxfile.replace(
+      'id="3" value="Circle" style="ellipse;',
+      'id="3" value="Circle" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;',
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).not.toContain("<ellipse ");
   });
 
   test("shape document renders wave bottom with Q curves", () => {
@@ -89,7 +97,7 @@ describe("convert", () => {
     const svg = convert(xml);
     expect(svg).toContain("<path ");
     expect(svg).toContain(" Q ");
-    expect(svg).toMatch(/M 100 80 L 220 80 L 220 132\.5/);
+    expect(svg).toMatch(/M 8 8 L 128 8 L 128 60\.5/);
   });
 
   test("shape document places label center above full box center", () => {
@@ -100,7 +108,7 @@ describe("convert", () => {
       ),
     );
     expect(svg).toContain("Hello");
-    expect(svg).toContain('y="101"');
+    expect(svg).toContain('y="29"');
     expect(svg).not.toContain('y="110"');
   });
 
@@ -113,7 +121,7 @@ describe("convert", () => {
     );
     expect(svg).toContain("<path ");
     const ds = [...svg.matchAll(/d="([^"]+)"/g)].map((x) => x[1]);
-    const blob = ds.find((d) => d.includes(" Q ") && d.startsWith("M 112 80"));
+    const blob = ds.find((d) => d.includes(" Q ") && d.startsWith("M 20 8"));
     expect(blob).toBeDefined();
   });
 
@@ -126,8 +134,8 @@ describe("convert", () => {
     );
     expect(svg).toContain("<rect ");
     expect((svg.match(/<line /g) ?? []).length).toBeGreaterThanOrEqual(2);
-    expect(svg).toContain('y1="105"');
-    expect(svg).toContain('x1="120"');
+    expect(svg).toContain('y1="33"');
+    expect(svg).toContain('x1="28"');
   });
 
   test("shape pentagon renders five-sided path", () => {
@@ -148,7 +156,7 @@ describe("convert", () => {
       "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
       "shape=triangle;direction=south;fillColor=#dae8fc;strokeColor=#6c8ebf;",
     );
-    expect(convert(xml)).toContain('d="M 100 80 L 220 80 L 160 140 Z"');
+    expect(convert(xml)).toContain('d="M 8 8 L 128 8 L 68 68 Z"');
   });
 
   test("renders edge between source and target (center line)", () => {
@@ -156,8 +164,18 @@ describe("convert", () => {
     expect(svg).toContain("<polyline");
     expect(svg).toContain('data-mx2svg-edge="4"');
     expect(svg).toContain("marker-end");
-    expect(svg).toMatch(/160,110/);
-    expect(svg).toMatch(/340,120/);
+    expect(svg).toMatch(/68,38/);
+    expect(svg).toMatch(/248,48/);
+  });
+
+  test("edges render after vertices so connectors stack on top", () => {
+    const svg = convert(minimalMxfile);
+    const iEdge = svg.indexOf('data-mx2svg-edge="4"');
+    const iLastVertex = Math.max(
+      svg.indexOf('data-mx2svg-id="2"'),
+      svg.indexOf('data-mx2svg-id="3"'),
+    );
+    expect(iEdge).toBeGreaterThan(iLastVertex);
   });
 
   test("orthogonalEdgeStyle on center fallback yields elbow polyline", () => {
@@ -170,7 +188,9 @@ describe("convert", () => {
     expect(m).not.toBeNull();
     const pts = m![1].split(/\s+/).filter(Boolean);
     expect(pts.length).toBe(3);
-    expect(pts[1]).toBe("340,110");
+    const [mx, my] = pts[1]!.split(",").map(Number);
+    expect(mx).toBeCloseTo(208.06, 1);
+    expect(my).toBeCloseTo(41.33, 1);
   });
 
   test("edgeLabel child mxCell supplies edge label text", () => {
@@ -208,9 +228,9 @@ describe("convert", () => {
     expect(m).not.toBeNull();
     const pts = m![1].split(/\s+/).filter(Boolean);
     const [fx, fy] = pts[0].split(",").map(Number);
-    expect(fx).toBeGreaterThan(200);
-    expect(fy).toBeGreaterThan(108);
-    expect(inner).not.toContain("160,110");
+    expect(fx).toBeGreaterThan(130);
+    expect(fy).toBeGreaterThan(35);
+    expect(inner).not.toContain("68,38");
   });
 
   test("edge spacing from rotated ellipse source differs from axis-aligned ellipse polyline start", () => {
@@ -355,8 +375,8 @@ describe("convert", () => {
     );
     const svg = convert(xml);
     expect(svg).toContain("relates");
-    expect(svg).toContain('x="250"');
-    expect(svg).toContain('y="115"');
+    expect(svg).toContain('x="158"');
+    expect(svg).toContain('y="43"');
     expect(svg).toContain('paint-order="stroke fill"');
   });
 
@@ -416,7 +436,7 @@ describe("convert", () => {
     const inner = svg.match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
     const yAttr = inner.match(/<text[^>]*\sy="([\d.]+)"/)?.[1];
     expect(yAttr).toBeDefined();
-    expect(Number(yAttr)).not.toBeCloseTo(115, 0);
+    expect(Number(yAttr)).not.toBeCloseTo(43, 0);
   });
 
   test("edge labelBackgroundColor draws rounded rect under label and skips contrast halo", () => {
@@ -452,8 +472,8 @@ describe("convert", () => {
       );
     const svg = convert(xml);
     expect(svg).toContain("off");
-    expect(svg).toContain('x="280"');
-    expect(svg).toContain('y="110"');
+    expect(svg).toContain('x="188"');
+    expect(svg).toContain('y="38"');
   });
 
   test("edge label mxPoint as label uses fraction along path", () => {
@@ -468,8 +488,36 @@ describe("convert", () => {
       );
     const svg = convert(xml);
     expect(svg).toContain("frac");
-    expect(svg).toContain('x="205"');
-    expect(svg).toContain('y="112.5"');
+    expect(svg).toContain('x="113"');
+    expect(svg).toContain('y="40.5"');
+  });
+
+  test("edge Array-only waypoints connect source and target perimeters", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="a" vertex="1" parent="1" style="rounded=0;html=1;">
+    <mxGeometry x="100" y="100" width="100" height="60" as="geometry"/>
+  </mxCell>
+  <mxCell id="b" vertex="1" parent="1" style="rounded=0;html=1;">
+    <mxGeometry x="100" y="300" width="100" height="60" as="geometry"/>
+  </mxCell>
+  <mxCell id="e" edge="1" parent="1" source="a" target="b" style="endArrow=classic;strokeColor=#000;">
+    <mxGeometry relative="1" as="geometry">
+      <Array as="points">
+        <mxPoint x="250" y="130"/>
+        <mxPoint x="250" y="330"/>
+      </Array>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const m = svg.match(/points="([^"]+)"/);
+    expect(m).not.toBeNull();
+    const pts = m![1].split(/\s+/).filter(Boolean);
+    expect(pts.length).toBe(4);
+    expect(pts[0]).toBe("108,38");
+    expect(pts[3]).toBe("108,238");
   });
 
   test("renders edge from explicit mxPoint path", () => {
@@ -485,8 +533,8 @@ describe("convert", () => {
 </root></mxGraphModel></diagram></mxfile>`;
     const svg = convert(xml);
     expect(svg).toContain("<polyline");
-    expect(svg).toContain("10,20");
-    expect(svg).toContain("100,80");
+    expect(svg).toContain("8,8");
+    expect(svg).toContain("98,68");
   });
 
   test("rounded=1 on polyline edge renders orthogonal corner path", () => {
@@ -503,7 +551,7 @@ describe("convert", () => {
 </root></mxGraphModel></diagram></mxfile>`;
     const svg = convert(xml);
     expect(svg).toContain("<path ");
-    expect(svg).toContain('d="M 0 0 L 0 40 Q 0 50 10 50 L 100 50"');
+    expect(svg).toContain('d="M 8 8 L 8 48 Q 8 58 18 58 L 108 58"');
   });
 
   test("jumpStyle=arc inserts cubic arc at edge crossing", () => {
@@ -617,7 +665,7 @@ describe("convert", () => {
 </root></mxGraphModel></diagram></mxfile>`;
     const svg = convert(xml);
     expect(svg).toContain("<path ");
-    expect(svg).toContain('d="M 0 0 Q 0 50 50 50 Q 100 50 100 0"');
+    expect(svg).toContain('d="M 8 8 Q 8 58 58 58 Q 108 58 108 8"');
     expect(svg).not.toContain("<polyline");
   });
 
@@ -796,7 +844,7 @@ describe("convert", () => {
       '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>',
     );
     const svg = convert(xml);
-    expect(svg).toContain('transform="rotate(45, 160, 110)"');
+    expect(svg).toMatch(/transform="rotate\(45, 71\.63961030678928, 71\.63961030678928\)"/);
   });
 
   test("vertex fontColor sets text fill", () => {
@@ -997,7 +1045,7 @@ describe("convert", () => {
   test("vertex flipH=1 wraps content in scale(-1, 1) around center", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipH=1;");
     const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
-    expect(inner).toMatch(/translate\(160, 110\)\s+scale\(-1, 1\)\s+translate\(-160, -110\)/);
+    expect(inner).toMatch(/translate\(68, 38\)\s+scale\(-1, 1\)\s+translate\(-68, -38\)/);
   });
 
   test("vertex flipH=1 renders label after flip group (text not mirror-transformed)", () => {
@@ -1014,7 +1062,7 @@ describe("convert", () => {
         '<mxGeometry x="100" y="80" width="120" height="60" rotation="45" as="geometry"/>',
       );
     const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
-    expect(inner).toMatch(/translate\(160, 110\)/);
+    expect(inner).toMatch(/translate\(71\.63961030678928, 71\.63961030678928\)/);
     expect(inner).toMatch(/rotate\(45\)/);
     expect(inner).toMatch(/scale\(-1, 1\)/);
   });
@@ -1042,7 +1090,7 @@ describe("convert", () => {
   test("vertex flipV=1 wraps content in scale(1, -1) around center", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipV=1;");
     const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
-    expect(inner).toMatch(/translate\(160, 110\)\s+scale\(1, -1\)\s+translate\(-160, -110\)/);
+    expect(inner).toMatch(/translate\(68, 38\)\s+scale\(1, -1\)\s+translate\(-68, -38\)/);
   });
 
   test("vertex spacingLeft narrows wrap width and yields more tspans", () => {

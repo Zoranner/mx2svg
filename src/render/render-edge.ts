@@ -18,6 +18,8 @@ import {
 } from "./edge-label-layout.ts";
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
+import type { PageBakeOrigin } from "./page-bake.ts";
+import { bakeX, bakeY, shiftPathD } from "./page-bake.ts";
 import {
   allocRectClipPath,
   colorOr,
@@ -42,6 +44,7 @@ export function renderEdge(
   e: DiagramEdge,
   m: EdgeLineMetrics,
   g: GradientBuildContext,
+  bake: PageBakeOrigin,
   defaultFontStack?: string,
 ): string {
   let strokeRaw = mxPaintColor(e.style, "strokecolor", "#000000");
@@ -67,7 +70,7 @@ export function renderEdge(
   const strokeOp = strokeOpacityAttr(e.style);
   const miterAttr = strokeMiterlimitAttr(e.style);
 
-  const pathD = m.pathD;
+  const pathD = m.pathD != null ? shiftPathD(m.pathD, bake.ox, bake.oy) : null;
   const capJoin = edgeStrokeCapJoinAttr(e.style);
   const lineStroke = strokeNone
     ? ' stroke="none"'
@@ -76,13 +79,16 @@ export function renderEdge(
   const lineEl =
     pathD != null
       ? `<path d="${esc(pathD)}" fill="none"${lineStroke}${linePaint}${markerStart}${markerEnd}/>`
-      : `<polyline points="${(m.polylinePoints ?? e.points).map((p) => `${p.x},${p.y}`).join(" ")}" fill="none"${lineStroke}${linePaint}${markerStart}${markerEnd}/>`;
+      : `<polyline points="${(m.polylinePoints ?? e.points)
+          .map((p) => `${bakeX(bake, p.x)},${bakeY(bake, p.y)}`)
+          .join(" ")}" fill="none"${lineStroke}${linePaint}${markerStart}${markerEnd}/>`;
 
   const parts: string[] = [lineEl];
 
   if (e.label.trim() && !mxStyleNoLabel(e.style)) {
     const labelLink = mxStyleLinkHref(e.style);
-    const anchor = edgeLabelAnchor(e, m.metricsPolyline);
+    const anchorRaw = edgeLabelAnchor(e, m.metricsPolyline);
+    const anchor = { x: bakeX(bake, anchorRaw.x), y: bakeY(bake, anchorRaw.y) };
     const labelFill = colorOr(e.style, "fontcolor", "#000000");
     const softWrap = e.style.get("whitespace") === "wrap";
     const wrapBoxW =

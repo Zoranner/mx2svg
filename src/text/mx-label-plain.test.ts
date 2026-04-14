@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mxLabelToPlainText } from "./mx-label-plain.ts";
+import { mxLabelHtmlFontSizePx, mxLabelToPlainText } from "./mx-label-plain.ts";
 
 describe("mxLabelToPlainText", () => {
   test("strips block wrappers and keeps inner text", () => {
@@ -28,5 +28,19 @@ describe("mxLabelToPlainText", () => {
 
   test("removes HTML comments", () => {
     expect(mxLabelToPlainText("a<!--c-->b")).toBe("ab");
+  });
+});
+
+describe("mxLabelHtmlFontSizePx", () => {
+  test("reads font-size from style attribute", () => {
+    expect(mxLabelHtmlFontSizePx('<font style="font-size: 17px;">x</font>')).toBe(17);
+  });
+
+  test("returns largest px when nested", () => {
+    expect(
+      mxLabelHtmlFontSizePx(
+        '<span style="font-size: 12px;"><font style="font-size: 20px;">a</font></span>',
+      ),
+    ).toBe(20);
   });
 });

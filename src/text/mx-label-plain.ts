@@ -20,6 +20,24 @@ function decodeMxEntitiesAndBreaks(s: string): string {
 /**
  * 去掉标签与注释；`</p>`、`</div>`、`</tr>`、`<br>` 等产生换行；行内空白折叠；空行丢弃；多行以 `\n` 连接。
  */
+/**
+ * 从 HTML 片段中抽取 `font-size: Npx`（取最大合法值），供 edgeLabel 等无 `fontSize=` 样式键时使用。
+ */
+export function mxLabelHtmlFontSizePx(raw: string): number | undefined {
+  if (!raw) return undefined;
+  const decoded = decodeMxEntitiesAndBreaks(raw);
+  let best: number | undefined;
+  const re = /font-size\s*:\s*(\d+(?:\.\d+)?)\s*px/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(decoded)) !== null) {
+    const n = Number(m[1]);
+    if (Number.isFinite(n) && n > 0) {
+      best = best === undefined ? n : Math.max(best, n);
+    }
+  }
+  return best;
+}
+
 export function mxLabelToPlainText(raw: string): string {
   if (!raw) return "";
   let t = decodeMxEntitiesAndBreaks(raw);

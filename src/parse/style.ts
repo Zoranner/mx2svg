@@ -24,6 +24,11 @@ export function parseMxStyle(styleAttr: string | undefined): Map<string, string>
 export function inferShape(style: Map<string, string>): NodeShape {
   const s = style.get("shape")?.toLowerCase();
 
+  /** draw.io 常见 `ellipse;shape=cloud`：`shape=` 优先于裸 `ellipse` 键。 */
+  if (s === "cloud") {
+    return "cloud";
+  }
+
   if (style.has("ellipse")) {
     return "ellipse";
   }
@@ -56,7 +61,7 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "trapezoid" || style.has("trapezoid")) {
     return "trapezoid";
   }
-  if (s === "cloud" || style.has("cloud")) {
+  if (style.has("cloud")) {
     return "cloud";
   }
   if (s === "document" || style.has("document")) {

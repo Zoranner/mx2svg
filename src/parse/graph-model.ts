@@ -1,11 +1,15 @@
-import type { DiagramEdge, DiagramNode } from "../core/model.ts";
+import type { DiagramEdge, DiagramNode, DiagramRenderItem } from "../core/model.ts";
+import { perimeterPointFromCenterToward } from "../edge/edge-endpoint-spacing.ts";
 import {
   orthogonalizeTwoPointPolyline,
   styleIsOrthogonalEdge,
 } from "../edge/edge-orthogonal-fallback.ts";
-import { mxLabelToPlainText } from "../text/mx-label-plain.ts";
+import { mxLabelHtmlFontSizePx, mxLabelToPlainText } from "../text/mx-label-plain.ts";
+import { applyEdgePointDirectionFromTerminals } from "./edge-direction.ts";
 import { maybeAdjustCenterConnectorPoints } from "./edge-endpoints.ts";
 import {
+  edgeArrayWaypointCount,
+  edgeGeometryHasExplicitTerminals,
   edgePointsFromGeometry,
   parseEdgeLabelChildGeometry,
   parseEdgeLabelFields,
@@ -34,12 +38,21 @@ function styleHasEdgeLabel(style: Map<string, string>): boolean {
   return style.has("edgelabel");
 }
 
+function pointsNearlyEqual(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  eps = 1,
+): boolean {
+  return Math.hypot(a.x - b.x, a.y - b.y) <= eps;
+}
+
 export function parseGraphModelObject(modelObj: Record<string, unknown>): {
   nodes: DiagramNode[];
   edges: DiagramEdge[];
+  renderOrder: DiagramRenderItem[];
 } {
   const root = modelObj.root as Record<string, unknown> | undefined;
-  if (!root) return { nodes: [], edges: [] };
+  if (!root) return { nodes: [], edges: [], renderOrder: [] };
 
   const cells = asArray<Record<string, unknown>>(
     root.mxCell as Record<string, unknown> | Record<string, unknown>[],
@@ -103,7 +116,24 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
 
     const source = strAttr(cell, "source");
     const target = strAttr(cell, "target");
-    if ((!pts || pts.length < 2) && source && target) {
+    const explicitTerminals = edgeGeometryHasExplicitTerminals(geoObj);
+    const arrayWpCount = edgeArrayWaypointCount(geoObj);
+
+    if (pts && pts.length >= 1 && source && target && !explicitTerminals && arrayWpCount > 0) {
+      const a = nodeById.get(source);
+      const b = nodeById.get(target);
+      if (a && b) {
+        const first = pts[0]!;
+        const last = pts[pts.length - 1]!;
+        const start = perimeterPointFromCenterToward(a, first);
+        const end = perimeterPointFromCenterToward(b, last);
+        const merged: { x: number; y: number }[] = [];
+        if (!pointsNearlyEqual(start, first)) merged.push(start);
+        merged.push(...pts);
+        if (!pointsNearlyEqual(end, last)) merged.push(end);
+        pts = merged;
+      }
+    } else if ((!pts || pts.length < 2) && source && target) {
       const a = nodeById.get(source);
       const b = nodeById.get(target);
       if (a && b) {
@@ -120,13 +150,33 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     const styleStr = strAttr(cell, "style");
     const style = parseMxStyle(styleStr);
 
-    pts = maybeAdjustCenterConnectorPoints(pts, {
+    const { pts: ptsAfterSpacing, didSpacing } = maybeAdjustCenterConnectorPoints(pts, {
       usedCenterFallback,
       source,
       target,
       style,
       nodeById,
     });
+    pts = ptsAfterSpacing;
+
+    /** 仅正交边在「中心回退」时用形状周界端点再折线；默认直线边仍用中心连线（与 draw.io 常见导出一致）。 */
+    if (
+      usedCenterFallback &&
+      pts.length === 2 &&
+      source &&
+      target &&
+      !didSpacing &&
+      styleIsOrthogonalEdge(style)
+    ) {
+      const a = nodeById.get(source);
+      const b = nodeById.get(target);
+      if (a && b) {
+        const cA = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
+        const cB = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        pts = [perimeterPointFromCenterToward(a, cB), perimeterPointFromCenterToward(b, cA)];
+      }
+    }
+
     if (usedCenterFallback && pts.length === 2 && styleIsOrthogonalEdge(style)) {
       pts = orthogonalizeTwoPointPolyline(pts);
     }
@@ -179,6 +229,14 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
       if (v !== undefined && v !== "") edge.style.set(k, v);
     }
 
+    const fsFromHtml = mxLabelHtmlFontSizePx(rawVal);
+    if (
+      fsFromHtml != null &&
+      (vStyle.get("fontsize") === undefined || vStyle.get("fontsize") === "")
+    ) {
+      edge.style.set("fontsize", String(fsFromHtml));
+    }
+
     const geoRaw = cell.mxGeometry;
     const geoObj = (Array.isArray(geoRaw) ? geoRaw[0] : geoRaw) as
       | Record<string, unknown>
@@ -193,7 +251,27 @@ export function parseGraphModelObject(modelObj: Record<string, unknown>): {
     if (Number.isFinite(geoW) && geoW > 0) edge.labelWrapWidth = geoW;
   }
 
-  return { nodes, edges };
+  for (const e of edges) {
+    applyEdgePointDirectionFromTerminals(e, nodeById);
+  }
+
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const edgeIds = new Set(edges.map((e) => e.id));
+  const renderOrder: DiagramRenderItem[] = [];
+  for (const cell of cells) {
+    const rid = strAttr(cell, "id");
+    if (!rid || rid === "0" || rid === "1") continue;
+    if (strAttr(cell, "edge") === "1") {
+      if (edgeIds.has(rid)) renderOrder.push({ kind: "edge", id: rid });
+    } else if (strAttr(cell, "vertex") === "1") {
+      const st = parseMxStyle(strAttr(cell, "style"));
+      if (!styleHasEdgeLabel(st) && nodeIds.has(rid)) {
+        renderOrder.push({ kind: "node", id: rid });
+      }
+    }
+  }
+
+  return { nodes, edges, renderOrder };
 }
 
 export function parseMxGraphModelFromDoc(modelObj: Record<string, unknown>): {
@@ -201,9 +279,10 @@ export function parseMxGraphModelFromDoc(modelObj: Record<string, unknown>): {
   pageHeight: number;
   nodes: DiagramNode[];
   edges: DiagramEdge[];
+  renderOrder: DiagramRenderItem[];
 } {
   const pageWidth = numAttr(modelObj, "pageWidth", 850);
   const pageHeight = numAttr(modelObj, "pageHeight", 1100);
-  const { nodes, edges } = parseGraphModelObject(modelObj);
-  return { pageWidth, pageHeight, nodes, edges };
+  const { nodes, edges, renderOrder } = parseGraphModelObject(modelObj);
+  return { pageWidth, pageHeight, nodes, edges, renderOrder };
 }

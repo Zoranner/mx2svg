@@ -14,7 +14,7 @@ export function parseDrawioXml(xml: string): DiagramDoc {
   if (!mxfile) {
     if (root.mxGraphModel) {
       const m = root.mxGraphModel as Record<string, unknown>;
-      const { pageWidth, pageHeight, nodes, edges } = parseMxGraphModelFromDoc(m);
+      const { pageWidth, pageHeight, nodes, edges, renderOrder } = parseMxGraphModelFromDoc(m);
       return {
         pages: [
           {
@@ -24,6 +24,7 @@ export function parseDrawioXml(xml: string): DiagramDoc {
             pageHeight,
             nodes,
             edges,
+            renderOrder,
           },
         ],
       };
@@ -54,8 +55,8 @@ export function parseDrawioXml(xml: string): DiagramDoc {
 
     if (!modelObj) continue;
 
-    const { pageWidth, pageHeight, nodes, edges } = parseMxGraphModelFromDoc(modelObj);
-    pages.push({ id, name, pageWidth, pageHeight, nodes, edges });
+    const { pageWidth, pageHeight, nodes, edges, renderOrder } = parseMxGraphModelFromDoc(modelObj);
+    pages.push({ id, name, pageWidth, pageHeight, nodes, edges, renderOrder });
   }
 
   if (pages.length === 0) {

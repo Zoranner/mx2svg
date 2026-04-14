@@ -59,6 +59,9 @@ export interface DiagramEdge {
   tooltip?: string;
 }
 
+/** 与 mxGraphModel 中 mxCell 文档顺序一致，用于 SVG 叠放顺序（后绘在上层）。 */
+export type DiagramRenderItem = { kind: "node"; id: string } | { kind: "edge"; id: string };
+
 export interface DiagramPage {
   id: string;
   name: string;
@@ -68,6 +71,8 @@ export interface DiagramPage {
   nodes: DiagramNode[];
   /** 可渲染的边（阶段 2+）。 */
   edges: DiagramEdge[];
+  /** 缺省时渲染器按「全部顶点再全部边」处理。 */
+  renderOrder?: DiagramRenderItem[];
 }
 
 export interface DiagramDoc {
