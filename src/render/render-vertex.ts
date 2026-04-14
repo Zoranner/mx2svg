@@ -10,7 +10,14 @@ import {
 } from "./edge-label-layout.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
 import type { GradientBuildContext } from "./svg-util.ts";
-import { allocFill, colorOr, esc, rectCornerRadius, strokeDashAttr } from "./svg-util.ts";
+import {
+  allocFill,
+  colorOr,
+  esc,
+  groupOpacityAttr,
+  rectCornerRadius,
+  strokeDashAttr,
+} from "./svg-util.ts";
 
 export function renderVertex(
   n: DiagramNode,
@@ -125,10 +132,11 @@ export function renderVertex(
   }
 
   const inner = parts.join("");
+  const gOp = groupOpacityAttr(n.style);
   if (n.rotation !== 0) {
     const rcx = n.x + n.width / 2;
     const rcy = n.y + n.height / 2;
-    return `<g data-mx2svg-id="${esc(n.id)}"><g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${inner}</g></g>`;
+    return `<g data-mx2svg-id="${esc(n.id)}"${gOp}><g transform="rotate(${n.rotation}, ${rcx}, ${rcy})">${inner}</g></g>`;
   }
-  return `<g data-mx2svg-id="${esc(n.id)}">${inner}</g>`;
+  return `<g data-mx2svg-id="${esc(n.id)}"${gOp}>${inner}</g>`;
 }

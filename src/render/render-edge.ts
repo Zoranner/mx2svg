@@ -16,7 +16,7 @@ import {
 } from "./edge-label-layout.ts";
 import type { EdgeLineMetrics } from "./edge-line-metrics.ts";
 import { renderSvgLabelBlock } from "./label-svg.ts";
-import { colorOr, esc, strokeDashAttr } from "./svg-util.ts";
+import { colorOr, esc, groupOpacityAttr, strokeDashAttr } from "./svg-util.ts";
 
 export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?: string): string {
   const stroke = colorOr(e.style, "strokecolor", "#000000");
@@ -89,5 +89,5 @@ export function renderEdge(e: DiagramEdge, m: EdgeLineMetrics, defaultFontStack?
     );
   }
 
-  return `<g data-mx2svg-edge="${esc(e.id)}">${parts.join("")}</g>`;
+  return `<g data-mx2svg-edge="${esc(e.id)}"${groupOpacityAttr(e.style)}>${parts.join("")}</g>`;
 }

@@ -586,6 +586,29 @@ describe("convert", () => {
     expect(svg).toContain("Hello");
   });
 
+  test("vertex opacity=50 sets group opacity 0.5", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;opacity=50;");
+    expect(convert(xml)).toMatch(/data-mx2svg-id="2"[^>]*opacity="0\.5"/);
+  });
+
+  test("vertex opacity with decimal uses 0-1 scale", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;opacity=0.25;");
+    expect(convert(xml)).toMatch(/data-mx2svg-id="2"[^>]*opacity="0\.25"/);
+  });
+
+  test("vertex opacity=100 omits opacity on group", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;opacity=100;");
+    expect(convert(xml)).not.toMatch(/data-mx2svg-id="2"[^>]*opacity=/);
+  });
+
+  test("edge opacity applies to edge group", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;opacity=40;"',
+    );
+    expect(convert(xml)).toMatch(/data-mx2svg-edge="4"[^>]*opacity="0\.4"/);
+  });
+
   test("vertex fontStyle=1 sets font-weight bold on label", () => {
     const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;fontStyle=1;");
     const svg = convert(xml);

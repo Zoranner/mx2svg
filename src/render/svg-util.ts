@@ -50,6 +50,21 @@ export function strokeDashAttr(style: Map<string, string>): string {
   return "";
 }
 
+/**
+ * draw.io **`opacity`**（style 键 **`opacity`**，小写）：无小数点按 **0–100**；含小数点按 **0–1**。
+ * 用于顶点/边根 `<g>`，使填充、描边与标签一致乘性变淡。全不透明时返回空串。
+ */
+export function groupOpacityAttr(style: Map<string, string>): string {
+  const raw = style.get("opacity");
+  if (raw == null || raw === "") return "";
+  const trimmed = raw.trim();
+  const v = Number(trimmed);
+  if (!Number.isFinite(v)) return "";
+  const u = trimmed.includes(".") ? Math.max(0, Math.min(1, v)) : Math.max(0, Math.min(1, v / 100));
+  if (u >= 1 - 1e-9) return "";
+  return ` opacity="${u}"`;
+}
+
 /** 矩形圆角：`rounded=1` 为比例圆角；`rounded=N` 为像素半径；`rounded=0` 关闭。 */
 export function rectCornerRadius(style: Map<string, string>, w: number, h: number): number {
   const r = style.get("rounded");
