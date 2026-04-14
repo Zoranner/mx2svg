@@ -1,5 +1,9 @@
 import type { DiagramNode } from "../core/model.ts";
-import { shapePathD, vertexLabelLayoutRect } from "../shape/shape-path.ts";
+import {
+  shapePathD,
+  vertexLabelLayoutRect,
+  vertexLabelPaddingFromStyle,
+} from "../shape/shape-path.ts";
 import { measureVertexLabelDisplayBlock, wrapVertexLabelToBoxWidth } from "../text/wrap-label.ts";
 import {
   edgeLabelBackgroundLayout,
@@ -166,21 +170,23 @@ export function renderVertex(
   }
 
   if (n.label.trim()) {
-    const labelInset = 8;
+    const pad = vertexLabelPaddingFromStyle(n.style);
+    const contentMaxW = Math.max(1, n.width - pad.left - pad.right);
     const softWrap = n.style.get("whitespace") === "wrap";
     const wrap = softWrap
-      ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, labelInset, n.style, defaultFontStack)
+      ? wrapVertexLabelToBoxWidth(n.label, n.width, fs, 0, n.style, defaultFontStack, contentMaxW)
       : n.label;
     const { width: tw, height: th } = measureVertexLabelDisplayBlock(
       wrap,
       n.width,
       fs,
-      labelInset,
+      0,
       softWrap,
       n.style,
       defaultFontStack,
+      contentMaxW,
     );
-    const rect = vertexLabelLayoutRect(n.shape, n.x, n.y, n.width, n.height, n.style, labelInset);
+    const rect = vertexLabelLayoutRect(n.shape, n.x, n.y, n.width, n.height, n.style, pad);
     const ah = parseEdgeLabelAlignH(n.style);
     const av = parseEdgeLabelAlignV(n.style);
     let ax = (rect.left + rect.right) / 2;

@@ -25,8 +25,38 @@ export function vertexLabelCenter(
   return { cx: x + w / 2, cy: y + h / 2 };
 }
 
+/** 与历史默认一致的基础内边距（像素），再叠加 style 中的 **`spacing`** / **`spacing*`**。 */
+const DEFAULT_VERTEX_LABEL_BASE_PAD = 8;
+
+/** 顶点标签区四边内边距（含基础 **8px** + draw.io **`spacing`** / **`spacingLeft`** 等）。 */
+export interface VertexLabelPadding {
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
 /**
- * 顶点标签排版用的轴对齐矩形（内缩 **`inset`**，与 `wrap-label` 一致）。
+ * **`spacing`**：未单独指定 **`spacingLeft`** 等时，作为四边附加值。
+ * 各 **`spacingLeft`**…键存在时优先于 **`spacing`**（该边）。
+ */
+export function vertexLabelPaddingFromStyle(style: Map<string, string>): VertexLabelPadding {
+  const uniform = Number(style.get("spacing")) || 0;
+  const side = (key: string): number => {
+    if (style.has(key)) return Number(style.get(key)) || 0;
+    return uniform;
+  };
+  const b = DEFAULT_VERTEX_LABEL_BASE_PAD;
+  return {
+    left: b + side("spacingleft"),
+    right: b + side("spacingright"),
+    top: b + side("spacingtop"),
+    bottom: b + side("spacingbottom"),
+  };
+}
+
+/**
+ * 顶点标签排版用的轴对齐矩形（由 **`vertexLabelPaddingFromStyle`** 得四边内边距）。
  * **`document`** 时底边落在折痕上方，不含波浪区域。
  */
 export function vertexLabelLayoutRect(
@@ -36,16 +66,16 @@ export function vertexLabelLayoutRect(
   w: number,
   h: number,
   style: Map<string, string>,
-  inset: number,
+  pad: VertexLabelPadding,
 ): { left: number; right: number; top: number; bottom: number } {
-  let bottom = y + h - inset;
+  let bottom = y + h - pad.bottom;
   if (shape === "document") {
-    bottom = y + h - documentWaveDy(h, style) - inset;
+    bottom = y + h - documentWaveDy(h, style) - pad.bottom;
   }
   return {
-    left: x + inset,
-    right: x + w - inset,
-    top: y + inset,
+    left: x + pad.left,
+    right: x + w - pad.right,
+    top: y + pad.top,
     bottom,
   };
 }

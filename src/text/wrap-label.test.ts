@@ -26,6 +26,20 @@ describe("wrapVertexLabelToBoxWidth (Pretext)", () => {
     expect(wrapVertexLabelToBoxWidth("Hi", 200, 12, 8)).toBe("Hi");
   });
 
+  test("contentMaxWidthPx overrides symmetric inset width", () => {
+    const narrow = wrapVertexLabelToBoxWidth(
+      "aa bb cc dd ee ff",
+      200,
+      12,
+      8,
+      undefined,
+      undefined,
+      40,
+    );
+    const wide = wrapVertexLabelToBoxWidth("aa bb cc dd ee ff", 200, 12, 8);
+    expect(narrow.split("\n").length).toBeGreaterThan(wide.split("\n").length);
+  });
+
   test("preserves explicit newline with pre-wrap", () => {
     const s = wrapVertexLabelToBoxWidth("a\nb", 200, 12, 8);
     expect(s).toContain("\n");

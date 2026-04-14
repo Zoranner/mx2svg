@@ -866,4 +866,34 @@ describe("convert", () => {
     expect(inner).toContain('stroke="none"');
     expect(inner).not.toContain("marker-end");
   });
+
+  test("edge strokeWidth=0 drops markers", () => {
+    const xml = minimalMxfile.replace(
+      'style="endArrow=classic;strokeColor=#82b366;"',
+      'style="endArrow=classic;strokeColor=#82b366;strokeWidth=0;"',
+    );
+    const inner = convert(xml).match(/<g data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('stroke="none"');
+    expect(inner).not.toContain("marker-end");
+  });
+
+  test("vertex flipV=1 wraps content in scale(1, -1) around center", () => {
+    const xml = minimalMxfile.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;flipV=1;");
+    const inner = convert(xml).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toMatch(/translate\(160, 110\)\s+scale\(1, -1\)\s+translate\(-160, -110\)/);
+  });
+
+  test("vertex spacingLeft narrows wrap width and yields more tspans", () => {
+    const longLabel = minimalMxfile.replace(
+      'value="Hello"',
+      'value="one two three four five six seven eight nine"',
+    );
+    const spaced = longLabel.replace("strokeColor=#6c8ebf;", "strokeColor=#6c8ebf;spacingLeft=32;");
+    const innerBase =
+      convert(longLabel).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const innerSp = convert(spaced).match(/<g data-mx2svg-id="2"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect((innerSp.match(/<tspan/g) ?? []).length).toBeGreaterThan(
+      (innerBase.match(/<tspan/g) ?? []).length,
+    );
+  });
 });

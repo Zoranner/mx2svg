@@ -14,8 +14,10 @@ export function measureVertexLabelDisplayBlock(
   softWrap: boolean,
   style: Map<string, string> = EMPTY_MX_STYLE,
   defaultFontStack?: string,
+  /** 若给定，则优先于 **`boxWidthPx - 2 * horizontalInsetPx`**（用于左右不对称 **`spacing*`**）。 */
+  contentMaxWidthPx?: number,
 ): { width: number; height: number } {
-  const maxContent = Math.max(1, boxWidthPx - 2 * horizontalInsetPx);
+  const maxContent = Math.max(1, contentMaxWidthPx ?? boxWidthPx - 2 * horizontalInsetPx);
   const lineHeight = fontSizePx * 1.2;
   const prepared = prepareWithSegments(
     displayText,
@@ -41,8 +43,9 @@ export function wrapVertexLabelToBoxWidth(
   horizontalInsetPx: number,
   style: Map<string, string> = EMPTY_MX_STYLE,
   defaultFontStack?: string,
+  contentMaxWidthPx?: number,
 ): string {
-  const maxW = Math.max(1, boxWidthPx - 2 * horizontalInsetPx);
+  const maxW = Math.max(1, contentMaxWidthPx ?? boxWidthPx - 2 * horizontalInsetPx);
   const lineHeight = fontSizePx * 1.2;
   const prepared = prepareWithSegments(
     label,
