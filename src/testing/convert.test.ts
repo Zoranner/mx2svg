@@ -342,6 +342,16 @@ describe("convert", () => {
     expect(svg).toContain('marker-end="url(#mx2svg-am-open-end-82b366)"');
   });
 
+  test("startArrow=doubleBlock with endArrow=none uses doubleBlock start marker only", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "startArrow=doubleBlock;endArrow=none;strokeColor=#82b366;",
+    );
+    const inner = convert(xml).match(/data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('marker-start="url(#mx2svg-am-doubleBlock-start-82b366)"');
+    expect(inner).not.toContain("marker-end");
+  });
+
   test("edge label whiteSpace=wrap uses geometry width and yields multiple tspans", () => {
     const xml = minimalMxfile
       .replace(
@@ -704,6 +714,26 @@ describe("convert", () => {
     const svg = convert(xml);
     expect(svg).toContain("<rect ");
     expect(svg).toMatch(/<line[^>]+x1="22\.4"[^>]+x2="22\.4"/);
+  });
+
+  test("shape=delay renders flat left and semicircle right in path", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=delay;rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<path ");
+    expect(svg).toMatch(/ d="M 8 8 L 98 8 A 30 30 0 0 1 98 68 L 8 68 Z"/);
+  });
+
+  test("shape=offPageConnector maps to ellipse geometry", () => {
+    const xml = minimalMxfile.replace(
+      'id="3" value="Circle" style="ellipse;fillColor=#fff2cc;strokeColor=#d6b656;"',
+      'id="3" value="Off" style="ellipse;shape=offPageConnector;fillColor=#fff2cc;strokeColor=#d6b656;"',
+    );
+    const svg = convert(xml);
+    expect(svg).toMatch(/<g data-mx2svg-id="3"[\s\S]*<ellipse[\s\S]*<\/g>/);
+    expect(svg).toContain("Off");
   });
 
   test("RenderOptions defaultVertexFontSize and defaultEdgeFontSize apply when style omits fontSize", () => {

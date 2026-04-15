@@ -100,7 +100,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 | 类别 | 已覆盖（示例） |
 |------|----------------|
 | 几何 | 位置、宽高、**`rotation`**（绕中心）、**`flipH` / `flipV`** |
-| 形状 | 默认 **`rect` / `ellipse`**；**`rhombus`**、**`hexagon`**、**`parallelogram`**、**`triangle`**（方向）、**`trapezoid`** 等；**`cylinder`**、**`cloud`**、**`document`**、**`dataStorage`**、**`internalStorage`**、**`process`**（左侧竖条）等 |
+| 形状 | 默认 **`rect` / `ellipse`**；**`rhombus`**、**`hexagon`**、**`parallelogram`**、**`triangle`**（方向）、**`trapezoid`** 等；**`cylinder`**、**`cloud`**、**`document`**、**`dataStorage`**、**`internalStorage`**、**`process`**（左侧竖条）、**`delay`**（左直右半圆）、**`offPageConnector`**（解析为 **`ellipse`**）等 |
 | 填充描边 | **`fillColor` / `strokeColor`**（含 **`none`**）、**`strokeWidth`**、**`opacity`**、**`fillOpacity` / `strokeOpacity`**、**`rounded` / `arcSize`**、**`double`**（部分形状） |
 | 虚线 | **`dashed` / `dash`**、**`dashPattern`**、**`fixDash`**（是否按线宽缩放） |
 | 线端样式 | **`linecap` / `linejoin`**、**`miterLimit`** |
@@ -150,7 +150,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 ### 中期（跨模块）
 
 - **`parent` 层级与绘制顺序**（分组、遮挡关系与 draw.io 更一致）。
-- 更多内置 **`shape`**（按业务优先级列清单，避免一次性对齐全库 stencil）。
+- 更多内置 **`shape`**（按业务优先级列清单，避免一次性对齐全库 stencil）。（已增：**`delay`**、**`offPageConnector`**→**`ellipse`**。）
 - **`RenderOptions`**：已支持 **`defaultFontStack`**、**`defaultVertexFontSize`**、**`defaultEdgeFontSize`**；主题色等仍待扩展。
 
 ### 长期（子项目级）

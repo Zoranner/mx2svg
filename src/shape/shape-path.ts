@@ -95,6 +95,12 @@ export function shapePathD(
     case "internalStorage":
     case "process":
       return null;
+    case "delay": {
+      const ry = h / 2;
+      const flatW = Math.max(0, w - ry);
+      const xr = x + flatW;
+      return `M ${x} ${y} L ${xr} ${y} A ${ry} ${ry} 0 0 1 ${xr} ${y + h} L ${x} ${y + h} Z`;
+    }
     case "rhombus": {
       const cx = x + w / 2;
       const cy = y + h / 2;

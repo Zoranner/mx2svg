@@ -17,7 +17,9 @@ export type NodeShape =
   | "dataStorage"
   | "internalStorage"
   /** 流程图「过程」：矩形左侧竖条（draw.io `shape=process`）。 */
-  | "process";
+  | "process"
+  /** 流程图「延迟」：左直边 + 右半圆（draw.io `shape=delay`）。 */
+  | "delay";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

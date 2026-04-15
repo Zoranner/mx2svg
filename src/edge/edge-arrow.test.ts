@@ -39,6 +39,8 @@ describe("edge-arrow", () => {
   test("parseStartArrow mirrors end tokens", () => {
     const s = new Map<string, string>([["startarrow", "open"]]);
     expect(parseStartArrow(s)).toBe("open");
+    s.set("startarrow", "doubleBlock");
+    expect(parseStartArrow(s)).toBe("doubleBlock");
   });
 
   test("arrowMarkerId encodes stroke hex slug", () => {

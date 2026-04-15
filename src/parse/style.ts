@@ -28,6 +28,10 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "cloud") {
     return "cloud";
   }
+  /** `ellipse;shape=offPageConnector`：须在裸 `ellipse` 键之前判定。 */
+  if (s === "offpageconnector") {
+    return "ellipse";
+  }
 
   if (style.has("ellipse")) {
     return "ellipse";
@@ -78,6 +82,9 @@ export function inferShape(style: Map<string, string>): NodeShape {
   }
   if (s === "process" || style.has("process")) {
     return "process";
+  }
+  if (s === "delay" || style.has("delay")) {
+    return "delay";
   }
 
   return "rect";

@@ -70,4 +70,27 @@ describe("cli", () => {
       new TextDecoder().decode(r.stdout).match(/<g data-mx2svg-id="2"[\s\S]*?<\/g>/)?.[0] ?? "";
     expect(hello).toContain('font-size="23"');
   });
+
+  test("--edge-font-size is passed to convert", () => {
+    const xml = sampleXml.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="L" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+    );
+    const r = Bun.spawnSync({
+      cmd: [
+        "bun",
+        "run",
+        join(import.meta.dir, "..", "cli.ts"),
+        "-s",
+        xml,
+        "--edge-font-size",
+        "16",
+      ],
+      cwd: pkgRoot,
+    });
+    expect(r.success).toBe(true);
+    const edgeG =
+      new TextDecoder().decode(r.stdout).match(/<g data-mx2svg-edge="4"[\s\S]*?<\/g>/)?.[0] ?? "";
+    expect(edgeG).toContain('font-size="16"');
+  });
 });
