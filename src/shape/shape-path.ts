@@ -93,6 +93,7 @@ export function shapePathD(
     case "rect":
     case "ellipse":
     case "internalStorage":
+    case "process":
       return null;
     case "rhombus": {
       const cx = x + w / 2;

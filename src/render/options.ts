@@ -9,4 +9,8 @@ export interface RenderOptions {
    * 例：`"Inter, system-ui, sans-serif"`。不设时与库内 `Arial, Helvetica, sans-serif` 一致。
    */
   defaultFontStack?: string;
+  /** 顶点 style 无 `fontSize` / `fontsize` 时的字号（px），默认 **12**。 */
+  defaultVertexFontSize?: number;
+  /** 边 style 无 `fontSize` / `fontsize` 时的字号（px），默认 **11**。 */
+  defaultEdgeFontSize?: number;
 }

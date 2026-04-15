@@ -34,6 +34,8 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
 
   const gctx: GradientBuildContext = { fragments: [], nextId: 0 };
   const defaultFontStack = options.defaultFontStack;
+  const defaultVertexFontSize = options.defaultVertexFontSize;
+  const defaultEdgeFontSize = options.defaultEdgeFontSize;
   const nodeById = new Map(page.nodes.map((n) => [n.id, n] as const));
   const edgeById = new Map(page.edges.map((e) => [e.id, e] as const));
 
@@ -42,16 +44,30 @@ export function renderToSvg(doc: DiagramDoc, options: RenderOptions = {}): strin
     for (const item of page.renderOrder) {
       if (item.kind === "node") {
         const n = nodeById.get(item.id);
-        if (n) bodyLayers.push(renderVertex(n, gctx, bake, defaultFontStack));
+        if (n)
+          bodyLayers.push(renderVertex(n, gctx, bake, defaultFontStack, defaultVertexFontSize));
       } else {
         const e = edgeById.get(item.id);
-        if (e) bodyLayers.push(renderEdge(e, edgeMetrics.get(e.id)!, gctx, bake, defaultFontStack));
+        if (e)
+          bodyLayers.push(
+            renderEdge(
+              e,
+              edgeMetrics.get(e.id)!,
+              gctx,
+              bake,
+              defaultFontStack,
+              defaultEdgeFontSize,
+            ),
+          );
       }
     }
   } else {
-    for (const n of page.nodes) bodyLayers.push(renderVertex(n, gctx, bake, defaultFontStack));
+    for (const n of page.nodes)
+      bodyLayers.push(renderVertex(n, gctx, bake, defaultFontStack, defaultVertexFontSize));
     for (const e of page.edges) {
-      bodyLayers.push(renderEdge(e, edgeMetrics.get(e.id)!, gctx, bake, defaultFontStack));
+      bodyLayers.push(
+        renderEdge(e, edgeMetrics.get(e.id)!, gctx, bake, defaultFontStack, defaultEdgeFontSize),
+      );
     }
   }
   const contentLayer = bodyLayers.join("\n");

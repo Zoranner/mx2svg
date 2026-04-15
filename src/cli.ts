@@ -32,6 +32,8 @@ function printHelp(): void {
   --padding <n>         viewBox 内边距（默认 8）
   --bg <颜色>           背景色（默认 #ffffff）
   --font-stack <栈>     无 fontFamily 的单元格使用的 font-family（同 API defaultFontStack）
+  --vertex-font-size <n>  无 fontSize 的顶点默认字号（px，同 defaultVertexFontSize）
+  --edge-font-size <n>    无 fontSize 的边默认字号（px，同 defaultEdgeFontSize）
   -h, --help            显示此说明
 `);
 }
@@ -55,6 +57,8 @@ function main(): void {
   let padding = 8;
   let backgroundColor = "#ffffff";
   let defaultFontStack: string | undefined;
+  let defaultVertexFontSize: number | undefined;
+  let defaultEdgeFontSize: number | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -115,6 +119,26 @@ function main(): void {
       defaultFontStack = v;
       continue;
     }
+    if (a === "--vertex-font-size") {
+      const v = argv[++i];
+      const n = v ? Number(v) : NaN;
+      if (!Number.isFinite(n) || n <= 0) {
+        console.error("--vertex-font-size 须为正数");
+        process.exit(1);
+      }
+      defaultVertexFontSize = n;
+      continue;
+    }
+    if (a === "--edge-font-size") {
+      const v = argv[++i];
+      const n = v ? Number(v) : NaN;
+      if (!Number.isFinite(n) || n <= 0) {
+        console.error("--edge-font-size 须为正数");
+        process.exit(1);
+      }
+      defaultEdgeFontSize = n;
+      continue;
+    }
     if (a.startsWith("-")) {
       console.error(`未知参数: ${a}`);
       printHelp();
@@ -169,6 +193,8 @@ function main(): void {
     padding,
     backgroundColor,
     ...(defaultFontStack !== undefined ? { defaultFontStack } : {}),
+    ...(defaultVertexFontSize !== undefined ? { defaultVertexFontSize } : {}),
+    ...(defaultEdgeFontSize !== undefined ? { defaultEdgeFontSize } : {}),
   });
 
   let outPath = output;

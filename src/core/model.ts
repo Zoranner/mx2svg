@@ -15,7 +15,9 @@ export type NodeShape =
   | "document"
   | "pentagon"
   | "dataStorage"
-  | "internalStorage";
+  | "internalStorage"
+  /** 流程图「过程」：矩形左侧竖条（draw.io `shape=process`）。 */
+  | "process";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

@@ -49,6 +49,7 @@ export function renderVertex(
   g: GradientBuildContext,
   bake: PageBakeOrigin,
   defaultFontStack?: string,
+  defaultVertexFontSize?: number,
 ): string {
   const bx = (x: number): number => bakeX(bake, x);
   const by = (y: number): number => bakeY(bake, y);
@@ -57,7 +58,10 @@ export function renderVertex(
   const stroke = mxPaintColor(n.style, "strokecolor", "#6c8ebf");
   const sw = strokeWidthPx(n.style, 1);
   const strokeNone = stroke === "none" || sw === 0;
-  const fs = Number(n.style.get("fontsize") ?? "12") || 12;
+  const fs =
+    Number(n.style.get("fontsize") ?? String(defaultVertexFontSize ?? 12)) ||
+    (defaultVertexFontSize ?? 12) ||
+    12;
   const dashAttr = strokeDashAttr(n.style, sw);
   const fillOp = fillOpacityAttr(n.style);
   const strokeOp = strokeOpacityAttr(n.style);
@@ -175,6 +179,17 @@ export function renderVertex(
         `<rect x="${bx(n.x)}" y="${by(n.y)}" width="${n.width}" height="${n.height}" fill="${fill}" stroke="${esc(
           stroke,
         )}" stroke-width="${sw}" rx="${rx}" ry="${rx}"${dashAttr}${shapeCapJoin}${paint2d}${miterAttr}/>`,
+      );
+    }
+    if (n.shape === "process" && !strokeNone) {
+      const strip = Math.min(15, Math.max(3, n.width * 0.12));
+      const r2 = (v: number): number => Math.round(v * 100) / 100;
+      const lx = r2(bx(n.x + strip));
+      const y1 = r2(by(n.y));
+      const y2 = r2(by(n.y + n.height));
+      const lineStroke = esc(stroke);
+      shapeParts.push(
+        `<line x1="${lx}" y1="${y1}" x2="${lx}" y2="${y2}" stroke="${lineStroke}" stroke-width="${sw}"${lineCap}${strokeOp}/>`,
       );
     }
   }

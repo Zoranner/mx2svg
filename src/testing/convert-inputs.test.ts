@@ -113,6 +113,12 @@ describe("convert — 输入形态", () => {
     expect(svg).toContain("Georgia");
     expect(svg).toContain("BareRoot");
   });
+
+  test("ConvertOptions：defaultVertexFontSize 作用于无 fontSize 的顶点", () => {
+    const svg = convert(bareMxGraphModel, { defaultVertexFontSize: 21 });
+    expect(svg).toContain('font-size="21"');
+    expect(svg).toContain("BareRoot");
+  });
 });
 
 describe("convert — 错误输入", () => {

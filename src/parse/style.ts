@@ -76,6 +76,9 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "internalstorage" || style.has("internalstorage")) {
     return "internalStorage";
   }
+  if (s === "process" || style.has("process")) {
+    return "process";
+  }
 
   return "rect";
 }

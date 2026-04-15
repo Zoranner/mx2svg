@@ -51,4 +51,23 @@ describe("cli", () => {
     expect(svg).toContain("Hello");
     writeTestOutputSvg("cli", "font-stack-stdout", svg);
   });
+
+  test("--vertex-font-size is passed to convert", () => {
+    const r = Bun.spawnSync({
+      cmd: [
+        "bun",
+        "run",
+        join(import.meta.dir, "..", "cli.ts"),
+        "-s",
+        sampleXml,
+        "--vertex-font-size",
+        "23",
+      ],
+      cwd: pkgRoot,
+    });
+    expect(r.success).toBe(true);
+    const hello =
+      new TextDecoder().decode(r.stdout).match(/<g data-mx2svg-id="2"[\s\S]*?<\/g>/)?.[0] ?? "";
+    expect(hello).toContain('font-size="23"');
+  });
 });

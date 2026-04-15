@@ -14,7 +14,7 @@ describe("edge-arrow", () => {
     expect(parseEndArrow(new Map([["endarrow", "block"]]))).toBe("filled");
   });
 
-  test("parseEndArrow open oval diamond none", () => {
+  test("parseEndArrow open oval diamond dash none", () => {
     const s = new Map<string, string>();
     s.set("endarrow", "open");
     expect(parseEndArrow(s)).toBe("open");
@@ -22,6 +22,12 @@ describe("edge-arrow", () => {
     expect(parseEndArrow(s)).toBe("oval");
     s.set("endarrow", "diamond");
     expect(parseEndArrow(s)).toBe("diamond");
+    s.set("endarrow", "baseDash");
+    expect(parseEndArrow(s)).toBe("dash");
+    s.set("endarrow", "doubleBlock");
+    expect(parseEndArrow(s)).toBe("doubleBlock");
+    s.set("endarrow", "classicThin");
+    expect(parseEndArrow(s)).toBe("filled");
     s.set("endarrow", "none");
     expect(parseEndArrow(s)).toBe("none");
   });
@@ -56,6 +62,44 @@ describe("edge-arrow", () => {
     const defs = buildArrowMarkerDefs([e]);
     expect(defs).toContain('id="mx2svg-am-filled-end-ff0000"');
     expect(defs).toContain('fill="#ff0000"');
+  });
+
+  test("buildArrowMarkerDefs shrinks marker for thin endArrow at same endSize", () => {
+    const thin: DiagramEdge = {
+      id: "e2",
+      parentId: "1",
+      source: "a",
+      target: "b",
+      label: "",
+      points: [],
+      style: new Map([
+        ["endarrow", "classicThin"],
+        ["strokecolor", "#00aa00"],
+        ["endsize", "12"],
+      ]),
+    };
+    const defs = buildArrowMarkerDefs([thin]);
+    expect(defs).toContain('id="mx2svg-am-filled-end-00aa00-1440"');
+    /** 同 endSize 下 thin 箭头缩放约为 0.72×，marker 宽度四舍五入到小数点后两位 */
+    expect(defs).toContain('markerWidth="14.4"');
+  });
+
+  test("buildArrowMarkerDefs doubleBlock uses two filled triangles", () => {
+    const e: DiagramEdge = {
+      id: "e3",
+      parentId: "1",
+      source: "a",
+      target: "b",
+      label: "",
+      points: [],
+      style: new Map([
+        ["endarrow", "doubleBlock"],
+        ["strokecolor", "#112233"],
+      ]),
+    };
+    const defs = buildArrowMarkerDefs([e]);
+    expect(defs).toContain('id="mx2svg-am-doubleBlock-end-112233"');
+    expect((defs.match(/<path/g) ?? []).length).toBe(2);
   });
 
   test("buildArrowMarkerDefs scales marker when endSize is set", () => {

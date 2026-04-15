@@ -4,14 +4,29 @@
 
 import type { DiagramEdge } from "../core/model.ts";
 
-export type ArrowHeadKind = "none" | "filled" | "open" | "oval" | "diamond";
+export type ArrowHeadKind =
+  | "none"
+  | "filled"
+  | "open"
+  | "oval"
+  | "diamond"
+  | "dash"
+  /** 双实心三角（draw.io `doubleBlock`）。 */
+  | "doubleBlock";
 
+/**
+ * 与 draw.io `mxMarker` 注册名对齐（参见 `mxgraph/src/shape/mxMarker.js`）。
+ * `classicThin` / `blockThin` / `openThin` 等仍映射到同类箭头，尺寸由 {@link edgeArrowSizeScale} 按 **thin** 缩小。
+ */
 function mapArrowToken(v: string): ArrowHeadKind {
   const t = v.toLowerCase().trim();
   if (t === "none" || t === "") return "none";
-  if (t === "open" || t === "openthin" || t === "openasync") return "open";
+  if (t === "open" || t === "openthin" || t === "openasync" || t === "async") return "open";
   if (t === "oval" || t === "dot") return "oval";
   if (t === "diamond" || t === "diamondthin") return "diamond";
+  if (t === "basedash") return "dash";
+  if (t === "manyoptional") return "open";
+  if (t === "doubleblock") return "doubleBlock";
   return "filled";
 }
 
@@ -54,10 +69,15 @@ export function arrowColorSlug(strokeRaw: string): string {
 export function edgeArrowSizeScale(style: Map<string, string>, end: boolean): number {
   const key = end ? "endsize" : "startsize";
   const raw = style.get(key);
-  if (raw == null || raw === "") return 1;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return 1;
-  return Math.max(0.35, Math.min(5, n / 6));
+  let s = 1;
+  if (raw != null && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) s = Math.max(0.35, Math.min(5, n / 6));
+  }
+  const arrowKey = end ? "endarrow" : "startarrow";
+  const tok = (style.get(arrowKey) ?? "").toLowerCase();
+  if (tok.includes("thin")) s *= 0.72;
+  return s;
 }
 
 export function arrowMarkerId(
@@ -74,6 +94,11 @@ export function arrowMarkerId(
 
 function escAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/** 消除 marker 属性里的二进制浮点噪声（如 14.399999）。 */
+function mr(n: number): string {
+  return String(Math.round(n * 100) / 100);
 }
 
 function renderMarkerDef(
@@ -93,36 +118,56 @@ function renderMarkerDef(
       const h = 10 * s;
       const refYE = 5 * s;
       if (side === "end") {
-        return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${9 * s}" refY="${refYE}" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M 0 0 L ${10 * s} ${5 * s} L 0 ${10 * s} z" fill="${c}"/></marker>`;
+        return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(9 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M 0 0 L ${mr(10 * s)} ${mr(5 * s)} L 0 ${mr(10 * s)} z" fill="${c}"/></marker>`;
       }
-      return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${1 * s}" refY="${refYE}" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M ${10 * s} 0 L 0 ${5 * s} L ${10 * s} ${10 * s} z" fill="${c}"/></marker>`;
+      return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(1 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(10 * s)} 0 L 0 ${mr(5 * s)} L ${mr(10 * s)} ${mr(10 * s)} z" fill="${c}"/></marker>`;
+    }
+    case "doubleBlock": {
+      const h = 10 * s;
+      const w = 13 * s;
+      const refYE = 5 * s;
+      if (side === "end") {
+        return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(12 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M 0 0 L ${mr(5 * s)} ${mr(5 * s)} L 0 ${mr(10 * s)} z" fill="${c}"/>
+  <path d="M ${mr(4 * s)} 0 L ${mr(9 * s)} ${mr(5 * s)} L ${mr(4 * s)} ${mr(10 * s)} z" fill="${c}"/></marker>`;
+      }
+      return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(1 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(13 * s)} 0 L ${mr(8 * s)} ${mr(5 * s)} L ${mr(13 * s)} ${mr(10 * s)} z" fill="${c}"/>
+  <path d="M ${mr(9 * s)} 0 L ${mr(4 * s)} ${mr(5 * s)} L ${mr(9 * s)} ${mr(10 * s)} z" fill="${c}"/></marker>`;
     }
     case "open": {
       const w = 12 * s;
       const h = 12 * s;
       if (side === "end") {
-        return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${11 * s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M ${s} ${s} L ${11 * s} ${6 * s} L ${s} ${11 * s}" fill="none" stroke="${c}" stroke-width="${swOpen}" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
+        return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(11 * s)}" refY="${mr(6 * s)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(s)} ${mr(s)} L ${mr(11 * s)} ${mr(6 * s)} L ${mr(s)} ${mr(11 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swOpen)}" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
       }
-      return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M ${11 * s} ${s} L ${s} ${6 * s} L ${11 * s} ${11 * s}" fill="none" stroke="${c}" stroke-width="${swOpen}" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
+      return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(s)}" refY="${mr(6 * s)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(11 * s)} ${mr(s)} L ${mr(s)} ${mr(6 * s)} L ${mr(11 * s)} ${mr(11 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swOpen)}" stroke-linejoin="round" stroke-linecap="round"/></marker>`;
     }
     case "oval": {
       const w = 10 * s;
       const h = 10 * s;
       const refX = side === "end" ? 9 * s : 1 * s;
-      return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${refX}" refY="${5 * s}" orient="auto" markerUnits="userSpaceOnUse">
-  <ellipse cx="${5 * s}" cy="${5 * s}" rx="${4 * s}" ry="${4 * s}" fill="${c}"/></marker>`;
+      return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(h)}" refX="${mr(refX)}" refY="${mr(5 * s)}" orient="auto" markerUnits="userSpaceOnUse">
+  <ellipse cx="${mr(5 * s)}" cy="${mr(5 * s)}" rx="${mr(4 * s)}" ry="${mr(4 * s)}" fill="${c}"/></marker>`;
     }
     case "diamond":
       if (side === "end") {
-        return `<marker id="${id}" markerWidth="${12 * s}" markerHeight="${12 * s}" refX="${11 * s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M ${s} ${6 * s} L ${6 * s} ${s} L ${11 * s} ${6 * s} L ${6 * s} ${11 * s} Z" fill="${c}"/></marker>`;
+        return `<marker id="${id}" markerWidth="${mr(12 * s)}" markerHeight="${mr(12 * s)}" refX="${mr(11 * s)}" refY="${mr(6 * s)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(s)} ${mr(6 * s)} L ${mr(6 * s)} ${mr(s)} L ${mr(11 * s)} ${mr(6 * s)} L ${mr(6 * s)} ${mr(11 * s)} Z" fill="${c}"/></marker>`;
       }
-      return `<marker id="${id}" markerWidth="${12 * s}" markerHeight="${12 * s}" refX="${s}" refY="${6 * s}" orient="auto" markerUnits="userSpaceOnUse">
-  <path d="M ${11 * s} ${6 * s} L ${6 * s} ${s} L ${s} ${6 * s} L ${6 * s} ${11 * s} Z" fill="${c}"/></marker>`;
+      return `<marker id="${id}" markerWidth="${mr(12 * s)}" markerHeight="${mr(12 * s)}" refX="${mr(s)}" refY="${mr(6 * s)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(11 * s)} ${mr(6 * s)} L ${mr(6 * s)} ${mr(s)} L ${mr(s)} ${mr(6 * s)} L ${mr(6 * s)} ${mr(11 * s)} Z" fill="${c}"/></marker>`;
+    case "dash": {
+      const w = 10 * s;
+      const ref = 5 * s;
+      const swl = Math.max(1, 1.25 * s);
+      return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(w)}" refX="${mr(ref)}" refY="${mr(ref)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(1.2 * s)} ${mr(8.8 * s)} L ${mr(8.8 * s)} ${mr(1.2 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+    }
     default: {
       const _n: never = kind;
       return _n;

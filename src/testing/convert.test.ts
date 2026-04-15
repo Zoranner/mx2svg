@@ -654,6 +654,93 @@ describe("convert", () => {
     expect(hGroup![0]).toMatch(/ L [\d.-]+ [\d.-]+ M [\d.-]+ [\d.-]+/);
   });
 
+  test("curved edge with wrapped label align=right verticalAlign=bottom uses path and tspans", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="2" value="A" style="rounded=0;html=1;" vertex="1" parent="1">
+    <mxGeometry x="0" y="40" width="40" height="40" as="geometry"/>
+  </mxCell>
+  <mxCell id="3" value="B" style="rounded=0;html=1;" vertex="1" parent="1">
+    <mxGeometry x="200" y="40" width="40" height="40" as="geometry"/>
+  </mxCell>
+  <mxCell id="e1" value="one two three four five six" edge="1" parent="1" source="2" target="3" style="curved=1;endArrow=classic;strokeColor=#000;whiteSpace=wrap;fontSize=11;align=right;verticalAlign=bottom;">
+    <mxGeometry relative="1" width="52" height="40" as="geometry"/>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const inner = svg.match(/<g data-mx2svg-edge="e1"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain("<path ");
+    expect(inner).toMatch(/\sQ\s/);
+    expect((inner.match(/<tspan/g) ?? []).length).toBeGreaterThan(1);
+    expect(inner).toMatch(/text-anchor="end"/);
+  });
+
+  test("endArrow=baseDash emits dash marker definition", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=baseDash;strokeColor=#333333;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-end="url(#mx2svg-am-dash-end-333333)"');
+    expect(svg).toMatch(/id="mx2svg-am-dash-end-333333"/);
+  });
+
+  test("endArrow=doubleBlock emits double triangle marker", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=doubleBlock;strokeColor=#82b366;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-end="url(#mx2svg-am-doubleBlock-end-82b366)"');
+    expect(svg).toMatch(/id="mx2svg-am-doubleBlock-end-82b366"/);
+  });
+
+  test("shape=process draws vertical bar inside rect", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=process;rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain("<rect ");
+    expect(svg).toMatch(/<line[^>]+x1="22\.4"[^>]+x2="22\.4"/);
+  });
+
+  test("RenderOptions defaultVertexFontSize and defaultEdgeFontSize apply when style omits fontSize", () => {
+    const xml = minimalMxfile.replace(
+      '<mxCell id="4" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+      '<mxCell id="4" value="E" edge="1" parent="1" source="2" target="3" style="endArrow=classic;strokeColor=#82b366;">',
+    );
+    const svg = convert(xml, { defaultVertexFontSize: 19, defaultEdgeFontSize: 17 });
+    const hello = svg.match(/<g data-mx2svg-id="2"[\s\S]*?<\/g>/)?.[0] ?? "";
+    const edgeG = svg.match(/<g data-mx2svg-edge="4"[\s\S]*?<\/g>/)?.[0] ?? "";
+    expect(hello).toContain('font-size="19"');
+    expect(edgeG).toContain('font-size="17"');
+  });
+
+  test("jumpStyle=arc with strokeWidth>1 still emits cubic bridge on crossed edge", () => {
+    const xml = `<?xml version="1.0"?>
+<mxfile><diagram id="p1" name="P"><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="h" edge="1" parent="1" style="jumpStyle=arc;jumpSize=6;strokeColor=#000;strokeWidth=4;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="0" y="50" as="sourcePoint"/>
+      <mxPoint x="100" y="50" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+  <mxCell id="v" edge="1" parent="1" style="strokeColor=#000;strokeWidth=4;">
+    <mxGeometry relative="1" as="geometry">
+      <mxPoint x="50" y="0" as="sourcePoint"/>
+      <mxPoint x="50" y="100" as="targetPoint"/>
+    </mxGeometry>
+  </mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    const svg = convert(xml);
+    const hGroup = svg.match(/data-mx2svg-edge="h"[^>]*>[\s\S]*?<\/g>/);
+    expect(hGroup).not.toBeNull();
+    expect(hGroup![0]).toContain(" C ");
+  });
+
   test("curved=1 renders path with Q commands", () => {
     const xml = `<?xml version="1.0"?>
 <mxfile><diagram id="p1" name="P"><mxGraphModel><root>

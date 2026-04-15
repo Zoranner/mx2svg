@@ -46,6 +46,7 @@ export function renderEdge(
   g: GradientBuildContext,
   bake: PageBakeOrigin,
   defaultFontStack?: string,
+  defaultEdgeFontSize?: number,
 ): string {
   let strokeRaw = mxPaintColor(e.style, "strokecolor", "#000000");
   let sw = strokeWidthPx(e.style, 1);
@@ -58,7 +59,10 @@ export function renderEdge(
   }
   const strokeNone = strokeRaw === "none" || sw === 0;
   const stroke = strokeNone ? "none" : strokeRaw;
-  const fs = Number(e.style.get("fontsize") ?? "11") || 11;
+  const fs =
+    Number(e.style.get("fontsize") ?? String(defaultEdgeFontSize ?? 11)) ||
+    (defaultEdgeFontSize ?? 11) ||
+    11;
   const dashAttr = strokeDashAttr(e.style, sw);
   const strokeVisible = !strokeNone;
   const scaleEnd = edgeArrowSizeScale(e.style, true);
