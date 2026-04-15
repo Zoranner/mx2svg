@@ -352,6 +352,18 @@ describe("convert", () => {
     expect(inner).not.toContain("marker-end");
   });
 
+  test("startArrow=baseDash with endArrow=none uses dash start marker only", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "startArrow=baseDash;endArrow=none;strokeColor=#334455;",
+    );
+    const svg = convert(xml);
+    const inner = svg.match(/data-mx2svg-edge="4"[^>]*>([\s\S]*?)<\/g>/)?.[1] ?? "";
+    expect(inner).toContain('marker-start="url(#mx2svg-am-dash-start-334455)"');
+    expect(inner).not.toContain("marker-end");
+    expect(svg).toMatch(/id="mx2svg-am-dash-start-334455"/);
+  });
+
   test("edge label whiteSpace=wrap uses geometry width and yields multiple tspans", () => {
     const xml = minimalMxfile
       .replace(
@@ -734,6 +746,65 @@ describe("convert", () => {
     const svg = convert(xml);
     expect(svg).toMatch(/<g data-mx2svg-id="3"[\s\S]*<ellipse[\s\S]*<\/g>/);
     expect(svg).toContain("Off");
+  });
+
+  test("shape=note renders folded-corner path", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=note;rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;",
+    );
+    const svg = convert(xml);
+    expect(svg).toMatch(/ d="M 8 8 L 113 8 L 128 23 L 128 68 L 8 68 Z"/);
+  });
+
+  test("shape=folder renders tabbed top path", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=folder;rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toMatch(
+      / d="M 8 21\.2 L 8 68 L 128 68 L 128 21\.2 L 110 21\.2 L 110 8 L 26 8 L 26 21\.2 Z"/,
+    );
+  });
+
+  test("shape=step renders pentagon path with top-left bevel", () => {
+    const xml = minimalMxfile.replace(
+      "rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "shape=step;rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+    );
+    const svg = convert(xml);
+    expect(svg).toMatch(/ d="M 32 8 L 128 8 L 128 68 L 8 68 L 32 8 Z"/);
+  });
+
+  test("endArrow=cross emits cross marker definition", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=cross;strokeColor=#aa0000;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-end="url(#mx2svg-am-cross-end-aa0000)"');
+    expect(svg).toMatch(/id="mx2svg-am-cross-end-aa0000"/);
+  });
+
+  test("endArrow=ERzeroToMany emits crowFoot marker", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=ERzeroToMany;strokeColor=#001122;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-end="url(#mx2svg-am-crowFoot-end-001122)"');
+    expect(svg).toMatch(/id="mx2svg-am-crowFoot-end-001122"/);
+  });
+
+  test("endArrow=ERmandOne emits bar marker", () => {
+    const xml = minimalMxfile.replace(
+      "endArrow=classic;strokeColor=#82b366;",
+      "endArrow=ERmandOne;strokeColor=#445566;",
+    );
+    const svg = convert(xml);
+    expect(svg).toContain('marker-end="url(#mx2svg-am-bar-end-445566)"');
+    expect(svg).toMatch(/id="mx2svg-am-bar-end-445566"/);
   });
 
   test("RenderOptions defaultVertexFontSize and defaultEdgeFontSize apply when style omits fontSize", () => {

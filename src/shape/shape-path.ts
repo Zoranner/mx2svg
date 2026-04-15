@@ -1,6 +1,23 @@
 import type { NodeShape } from "../core/model.ts";
 
 /** `document` 底部波浪占用高度（与 `shapePathD` 中 `size` 语义一致）。 */
+/** 折角大小（与 `shapePathD` 中 `note` 一致）。 */
+export function noteFoldPx(w: number, h: number): number {
+  return Math.min(20, w * 0.25, h * 0.25);
+}
+
+/** 顶部分区高度与左右内缩（与 `shapePathD` 中 `folder` 一致）。 */
+export function folderTabMetrics(w: number, h: number): { tabH: number; tw: number } {
+  const tabH = Math.min(14, Math.max(6, h * 0.22));
+  const tw = Math.min(w * 0.22, Math.max(18, w * 0.15));
+  return { tabH, tw };
+}
+
+/** 与 `shapePathD` 中 **`step`** 左上斜切一致。 */
+export function stepSkewPx(w: number, h: number): number {
+  return Math.min(w * 0.22, h * 0.4, 28);
+}
+
 export function documentWaveDy(h: number, style: Map<string, string> | undefined): number {
   const raw = style?.get("size");
   let size = raw != null && raw !== "" ? Number(raw) : 0.3;
@@ -21,6 +38,14 @@ export function vertexLabelCenter(
   if (shape === "document") {
     const dy = documentWaveDy(h, style);
     return { cx: x + w / 2, cy: y + (h - dy) / 2 };
+  }
+  if (shape === "folder") {
+    const { tabH } = folderTabMetrics(w, h);
+    return { cx: x + w / 2, cy: y + tabH + (h - tabH) / 2 };
+  }
+  if (shape === "note") {
+    const f = noteFoldPx(w, h);
+    return { cx: x + (w - f) / 2, cy: y + (h + f * 0.35) / 2 };
   }
   return { cx: x + w / 2, cy: y + h / 2 };
 }
@@ -69,13 +94,24 @@ export function vertexLabelLayoutRect(
   pad: VertexLabelPadding,
 ): { left: number; right: number; top: number; bottom: number } {
   let bottom = y + h - pad.bottom;
+  let left = x + pad.left;
+  let right = x + w - pad.right;
+  let top = y + pad.top;
   if (shape === "document") {
     bottom = y + h - documentWaveDy(h, style) - pad.bottom;
   }
+  if (shape === "note") {
+    const f = noteFoldPx(w, h);
+    right = x + w - f - pad.right;
+  }
+  if (shape === "folder") {
+    const { tabH } = folderTabMetrics(w, h);
+    top = y + tabH + pad.top;
+  }
   return {
-    left: x + pad.left,
-    right: x + w - pad.right,
-    top: y + pad.top,
+    left,
+    right,
+    top,
     bottom,
   };
 }
@@ -100,6 +136,22 @@ export function shapePathD(
       const flatW = Math.max(0, w - ry);
       const xr = x + flatW;
       return `M ${x} ${y} L ${xr} ${y} A ${ry} ${ry} 0 0 1 ${xr} ${y + h} L ${x} ${y + h} Z`;
+    }
+    case "note": {
+      const f = noteFoldPx(w, h);
+      const xr = x + w - f;
+      const yf = y + f;
+      return `M ${x} ${y} L ${xr} ${y} L ${x + w} ${yf} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+    }
+    case "folder": {
+      const { tabH, tw } = folderTabMetrics(w, h);
+      const yt = y + tabH;
+      return `M ${x} ${yt} L ${x} ${y + h} L ${x + w} ${y + h} L ${x + w} ${yt} L ${x + w - tw} ${yt} L ${x + w - tw} ${y} L ${x + tw} ${y} L ${x + tw} ${yt} Z`;
+    }
+    case "step": {
+      const sk = stepSkewPx(w, h);
+      const x1 = x + sk;
+      return `M ${x1} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} L ${x1} ${y} Z`;
     }
     case "rhombus": {
       const cx = x + w / 2;

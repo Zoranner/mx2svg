@@ -26,6 +26,14 @@ describe("edge-arrow", () => {
     expect(parseEndArrow(s)).toBe("dash");
     s.set("endarrow", "doubleBlock");
     expect(parseEndArrow(s)).toBe("doubleBlock");
+    s.set("endarrow", "cross");
+    expect(parseEndArrow(s)).toBe("cross");
+    s.set("endarrow", "ERcross");
+    expect(parseEndArrow(s)).toBe("cross");
+    s.set("endarrow", "ERone");
+    expect(parseEndArrow(s)).toBe("bar");
+    s.set("endarrow", "ERzeroToMany");
+    expect(parseEndArrow(s)).toBe("crowFoot");
     s.set("endarrow", "classicThin");
     expect(parseEndArrow(s)).toBe("filled");
     s.set("endarrow", "none");
@@ -84,6 +92,42 @@ describe("edge-arrow", () => {
     expect(defs).toContain('id="mx2svg-am-filled-end-00aa00-1440"');
     /** 同 endSize 下 thin 箭头缩放约为 0.72×，marker 宽度四舍五入到小数点后两位 */
     expect(defs).toContain('markerWidth="14.4"');
+  });
+
+  test("buildArrowMarkerDefs crowFoot uses three segments from hub", () => {
+    const e: DiagramEdge = {
+      id: "eCrow",
+      parentId: "1",
+      source: "a",
+      target: "b",
+      label: "",
+      points: [],
+      style: new Map([
+        ["endarrow", "ERoneToMany"],
+        ["strokecolor", "#010203"],
+      ]),
+    };
+    const defs = buildArrowMarkerDefs([e]);
+    expect(defs).toContain('id="mx2svg-am-crowFoot-end-010203"');
+    expect((defs.match(/\bM\b/g) ?? []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  test("buildArrowMarkerDefs cross uses two stroked diagonals", () => {
+    const e: DiagramEdge = {
+      id: "e4",
+      parentId: "1",
+      source: "a",
+      target: "b",
+      label: "",
+      points: [],
+      style: new Map([
+        ["endarrow", "cross"],
+        ["strokecolor", "#445566"],
+      ]),
+    };
+    const defs = buildArrowMarkerDefs([e]);
+    expect(defs).toContain('id="mx2svg-am-cross-end-445566"');
+    expect(defs).toMatch(/M [^"]+ L [^"]+ M /);
   });
 
   test("buildArrowMarkerDefs doubleBlock uses two filled triangles", () => {

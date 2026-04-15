@@ -12,7 +12,13 @@ export type ArrowHeadKind =
   | "diamond"
   | "dash"
   /** 双实心三角（draw.io `doubleBlock`）。 */
-  | "doubleBlock";
+  | "doubleBlock"
+  /** 叉号（`cross` / `ERcross` 等，描边）。 */
+  | "cross"
+  /** 竖杠（ER **`ERone`** / **`ERmandOne`** 等，描边）。 */
+  | "bar"
+  /** 简化乌鸦脚（**`ERzeroToMany`** / **`ERoneToMany`** 等，三笔叉）。 */
+  | "crowFoot";
 
 /**
  * 与 draw.io `mxMarker` 注册名对齐（参见 `mxgraph/src/shape/mxMarker.js`）。
@@ -27,6 +33,17 @@ function mapArrowToken(v: string): ArrowHeadKind {
   if (t === "basedash") return "dash";
   if (t === "manyoptional") return "open";
   if (t === "doubleblock") return "doubleBlock";
+  if (t === "cross" || t === "ercross" || t === "erdelete") return "cross";
+  if (t === "erone" || t === "ermandone" || t === "ermandatory") return "bar";
+  if (
+    t === "erzerotomany" ||
+    t === "eronetomany" ||
+    t === "ermany" ||
+    t === "ercrow" ||
+    t === "ercrowsfoot"
+  ) {
+    return "crowFoot";
+  }
   return "filled";
 }
 
@@ -167,6 +184,48 @@ function renderMarkerDef(
       const swl = Math.max(1, 1.25 * s);
       return `<marker id="${id}" markerWidth="${mr(w)}" markerHeight="${mr(w)}" refX="${mr(ref)}" refY="${mr(ref)}" orient="auto" markerUnits="userSpaceOnUse">
   <path d="M ${mr(1.2 * s)} ${mr(8.8 * s)} L ${mr(8.8 * s)} ${mr(1.2 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+    }
+    case "cross": {
+      const box = 10 * s;
+      const refYE = 5 * s;
+      const swl = Math.max(0.85, 1.2 * s);
+      const p = 1.35 * s;
+      const q = box - 1.35 * s;
+      if (side === "end") {
+        return `<marker id="${id}" markerWidth="${mr(box)}" markerHeight="${mr(box)}" refX="${mr(9 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(p)} ${mr(p)} L ${mr(q)} ${mr(q)} M ${mr(q)} ${mr(p)} L ${mr(p)} ${mr(q)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+      }
+      return `<marker id="${id}" markerWidth="${mr(box)}" markerHeight="${mr(box)}" refX="${mr(1 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(q)} ${mr(p)} L ${mr(p)} ${mr(q)} M ${mr(p)} ${mr(p)} L ${mr(q)} ${mr(q)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+    }
+    case "bar": {
+      const mh = 10 * s;
+      const mw = 5 * s;
+      const refYE = 5 * s;
+      const swl = Math.max(0.85, 1.15 * s);
+      const vx = 2.5 * s;
+      if (side === "end") {
+        return `<marker id="${id}" markerWidth="${mr(mw)}" markerHeight="${mr(mh)}" refX="${mr(4 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(vx)} ${mr(1.25 * s)} L ${mr(vx)} ${mr(8.75 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+      }
+      return `<marker id="${id}" markerWidth="${mr(mw)}" markerHeight="${mr(mh)}" refX="${mr(1 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(vx)} ${mr(1.25 * s)} L ${mr(vx)} ${mr(8.75 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+    }
+    case "crowFoot": {
+      const mw = 11 * s;
+      const mh = 10 * s;
+      const refYE = 5 * s;
+      const swl = Math.max(0.85, 1.15 * s);
+      if (side === "end") {
+        const hub = 9.25 * s;
+        const left = 2 * s;
+        return `<marker id="${id}" markerWidth="${mr(mw)}" markerHeight="${mr(mh)}" refX="${mr(10.5 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(hub)} ${mr(5 * s)} L ${mr(left)} ${mr(1.75 * s)} M ${mr(hub)} ${mr(5 * s)} L ${mr(left)} ${mr(5 * s)} M ${mr(hub)} ${mr(5 * s)} L ${mr(left)} ${mr(8.25 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
+      }
+      const hub = 1.75 * s;
+      const right = 9 * s;
+      return `<marker id="${id}" markerWidth="${mr(mw)}" markerHeight="${mr(mh)}" refX="${mr(0.5 * s)}" refY="${mr(refYE)}" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M ${mr(hub)} ${mr(5 * s)} L ${mr(right)} ${mr(1.75 * s)} M ${mr(hub)} ${mr(5 * s)} L ${mr(right)} ${mr(5 * s)} M ${mr(hub)} ${mr(5 * s)} L ${mr(right)} ${mr(8.25 * s)}" fill="none" stroke="${c}" stroke-width="${mr(swl)}" stroke-linecap="round"/></marker>`;
     }
     default: {
       const _n: never = kind;

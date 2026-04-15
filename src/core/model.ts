@@ -19,7 +19,13 @@ export type NodeShape =
   /** 流程图「过程」：矩形左侧竖条（draw.io `shape=process`）。 */
   | "process"
   /** 流程图「延迟」：左直边 + 右半圆（draw.io `shape=delay`）。 */
-  | "delay";
+  | "delay"
+  /** UML 注释：折角矩形（`shape=note`）。 */
+  | "note"
+  /** 文件夹：顶部分区标签（`shape=folder`）。 */
+  | "folder"
+  /** 流程图「准备 / 预定义过程」：左上斜切（draw.io `shape=step`）。 */
+  | "step";
 
 /** 可见图元（顶点）。 */
 export interface DiagramNode {

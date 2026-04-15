@@ -86,6 +86,15 @@ export function inferShape(style: Map<string, string>): NodeShape {
   if (s === "delay" || style.has("delay")) {
     return "delay";
   }
+  if (s === "note" || style.has("note")) {
+    return "note";
+  }
+  if (s === "folder" || style.has("folder")) {
+    return "folder";
+  }
+  if (s === "step" || style.has("step")) {
+    return "step";
+  }
 
   return "rect";
 }

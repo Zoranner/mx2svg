@@ -1,4 +1,5 @@
 import type { DiagramNode, NodeShape } from "../core/model.ts";
+import { stepSkewPx } from "./shape-path.ts";
 
 /**
  * 与 `shape-path.ts` 一致、相对 **单元格中心** 的凸多边形顶点（逆时针顺序），用于 `spacing` 等周界求交。
@@ -74,6 +75,15 @@ export function localConvexPolygonOffsets(
       return [
         { x: inset - hw, y: -hh },
         { x: hw - inset, y: -hh },
+        { x: hw, y: hh },
+        { x: -hw, y: hh },
+      ];
+    }
+    case "step": {
+      const sk = stepSkewPx(w, h);
+      return [
+        { x: sk - hw, y: -hh },
+        { x: hw, y: -hh },
         { x: hw, y: hh },
         { x: -hw, y: hh },
       ];

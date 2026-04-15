@@ -100,7 +100,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 | 类别 | 已覆盖（示例） |
 |------|----------------|
 | 几何 | 位置、宽高、**`rotation`**（绕中心）、**`flipH` / `flipV`** |
-| 形状 | 默认 **`rect` / `ellipse`**；**`rhombus`**、**`hexagon`**、**`parallelogram`**、**`triangle`**（方向）、**`trapezoid`** 等；**`cylinder`**、**`cloud`**、**`document`**、**`dataStorage`**、**`internalStorage`**、**`process`**（左侧竖条）、**`delay`**（左直右半圆）、**`offPageConnector`**（解析为 **`ellipse`**）等 |
+| 形状 | 默认 **`rect` / `ellipse`**；**`rhombus`**、**`hexagon`**、**`parallelogram`**、**`triangle`**（方向）、**`trapezoid`** 等；**`cylinder`**、**`cloud`**、**`document`**、**`dataStorage`**、**`internalStorage`**、**`process`**（左侧竖条）、**`delay`**（左直右半圆）、**`step`**（左上斜切）、**`note`**（折角）、**`folder`**（顶部分区）、**`offPageConnector`**（解析为 **`ellipse`**）等 |
 | 填充描边 | **`fillColor` / `strokeColor`**（含 **`none`**）、**`strokeWidth`**、**`opacity`**、**`fillOpacity` / `strokeOpacity`**、**`rounded` / `arcSize`**、**`double`**（部分形状） |
 | 虚线 | **`dashed` / `dash`**、**`dashPattern`**、**`fixDash`**（是否按线宽缩放） |
 | 线端样式 | **`linecap` / `linejoin`**、**`miterLimit`** |
@@ -116,7 +116,7 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 | 几何 | `sourcePoint` → 路点 → `targetPoint`；无点则连两端中心 |
 | 路由 | **`curved`**（二次贝塞尔）、**`rounded`** 正交圆角、**`jumpStyle`**（**`arc` / `line` / `sharp` / `gap`**，与 **`jumpSize`**、**`noJump`** 等配合；几何对齐 draw.io `mxConnector.paintLine`）；优先级：**跳线 > 曲线 > 圆角 > 折线** |
 | 端点 **`spacing`** | 无显式端点、回退为中心连线时，沿形状周界穿出再内收；**凸多边形**与 **`cloud` / `cylinder` / `document` / `dataStorage`** 等曲线轮廓已接周界近似（旋转几何下与 **`shape-path`** 一致） |
-| 箭头 | **`endArrow` / `startArrow`**：`classic` / `block` / `open` / `oval` / `diamond` / **`baseDash`**；**`*Thin`**（如 `classicThin`、`openThin`）缩小 marker；**`doubleBlock`** 为双实心三角 marker；**`manyOptional`** 等仍作近似映射；marker 数值统一四舍五入减少浮点噪声 |
+| 箭头 | **`endArrow` / `startArrow`**：`classic` / `block` / `open` / `oval` / `diamond` / **`baseDash`** / **`cross`**（**`ERcross`**、**`ERdelete`**）；ER：**`ERone`** / **`ERmandOne`** / **`ERmandatory`**→**竖杠 marker**；**`ERzeroToMany`** / **`ERoneToMany`** / **`ERmany`** 等→**简化乌鸦脚**（三笔）；**`*Thin`** 缩小 marker；**`doubleBlock`** 双三角；**`manyOptional`** 等近似；marker 数值四舍五入 |
 | 样式 | 与顶点类似的描边/虚线/透明度；**`noLabel`**、标签 **`align` / `verticalAlign`**、**`labelPadding`**、**`labelBackgroundColor`**、**`overflow=hidden`** 等 |
 
 ### 文本
@@ -144,13 +144,13 @@ type path\to\diagram.drawio | bun run ./src/cli.ts -
 
 - 边标签在 **曲线 / 多行 / 极端 `align`** 组合下的位置与基线微调，补回归用例。（已加：`curved=1` + `whiteSpace=wrap` + `align=right` + `verticalAlign=bottom` 集成测试。）
 - **`jumpStyle`**：与编辑器差异的边角用例（多交点、缩放等）。（已加：**`strokeWidth>1`** 时弧跳线仍产出 **`C`** 的冒烟测试。）
-- **箭头**：补齐常用 **`startArrow` / `endArrow`** 变体及与线宽、marker 尺寸的一致性。（已加：**`baseDash`** 斜杠 marker；**`*Thin`** 与 **`endSize`** 组合缩小；**`doubleBlock`** 双三角 marker；**`manyOptional`** 等近似映射；marker 坐标四舍五入。）
+- **箭头**：补齐常用 **`startArrow` / `endArrow`** 变体及与线宽、marker 尺寸的一致性。（已加：**`baseDash`**；**`cross`**；ER **`bar`** / **`crowFoot`**（简化）；**`*Thin`** 与 **`endSize`**；**`doubleBlock`**；**`manyOptional`** 等近似；marker 坐标四舍五入。）
 - **周界与 `spacing`**：对仍用轴对齐近似的形状做清单化排查；旋转矩形 / 椭圆边角用例加固。（旋转矩形 / 椭圆已有单测，其余形状待清单化。）
 
 ### 中期（跨模块）
 
 - **`parent` 层级与绘制顺序**（分组、遮挡关系与 draw.io 更一致）。
-- 更多内置 **`shape`**（按业务优先级列清单，避免一次性对齐全库 stencil）。（已增：**`delay`**、**`offPageConnector`**→**`ellipse`**。）
+- 更多内置 **`shape`**（按业务优先级列清单，避免一次性对齐全库 stencil）。（已增：**`delay`**、**`step`**、**`note`**、**`folder`**、**`offPageConnector`**→**`ellipse`**。）
 - **`RenderOptions`**：已支持 **`defaultFontStack`**、**`defaultVertexFontSize`**、**`defaultEdgeFontSize`**；主题色等仍待扩展。
 
 ### 长期（子项目级）
